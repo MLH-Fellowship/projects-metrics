@@ -2,3 +2,5 @@
 .env
 fellows.csv
 repos.json
+fellows-all.csv
+output.json

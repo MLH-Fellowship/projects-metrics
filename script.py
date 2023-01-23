@@ -48,6 +48,8 @@ def make_request(request_type, user):
     return r.json()    
 
 def find_issues_prs(response, projects, fellow):
+    if "items" not in response:
+        pprint(response)
     for item in response["items"]:
         url = '/'.join(item['html_url'].split('/')[:5])
         
@@ -87,19 +89,17 @@ def find_commits(response, projects, fellow):
 
 # Get info per fellow
 for fellow in fellows:
+    print(fellow)
     fellow_projects = projects[fellows[fellow]['project']]
     
     issues_response = make_request(ISSUES_URL, fellows[fellow]['github_username'])
     find_issues_prs(issues_response, fellow_projects, fellow)
-    
+    time.sleep(2)
     commits_response = make_request(COMMITS_URL, fellows[fellow]['github_username'])
     find_commits(commits_response, fellow_projects, fellow)
 
-    pprint(fellows[fellow])
+    time.sleep(5) # Limited to 30 requests a minute / 1 request every 2 seconds.
 
-    # Add fellow to database, checking for duplicate data
-
-    break
-    time.sleep(2) # Limited to 30 requests a minute / 1 request every 2 seconds.
-
+with open('output.json', 'w') as f:
+    json.dump(fellows, f)
 
