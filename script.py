@@ -5,6 +5,7 @@ import requests
 import time
 import datetime
 import pytz
+import os
 
 load_dotenv()
 
@@ -40,9 +41,9 @@ utc = pytz.utc
 def make_request(request_type, user):
     r = None
     if request_type == ISSUES_URL:
-        r = requests.get(BASE_URL + request_type + user + "&per_page=100")
+        r = requests.get(BASE_URL + request_type + user + "&per_page=100", auth=(os.getenv("GITHUB_USERNAME"), os.getenv("GITHUB_ACCESS_TOKEN")))
     elif request_type == COMMITS_URL:
-        r = requests.get(BASE_URL + request_type + user + "&per_page=100&&sort=author-date")
+        r = requests.get(BASE_URL + request_type + user + "&per_page=100&&sort=author-date", auth=(os.getenv("GITHUB_USERNAME"), os.getenv("GITHUB_ACCESS_TOKEN")))
 
     return r.json()    
 
@@ -95,6 +96,9 @@ for fellow in fellows:
     find_commits(commits_response, fellow_projects, fellow)
 
     pprint(fellows[fellow])
+
+    # Add fellow to database, checking for duplicate data
+
     break
     time.sleep(5)
 
