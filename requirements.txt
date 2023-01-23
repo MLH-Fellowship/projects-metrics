@@ -1,4 +1,4 @@
-PyGithub
 python-dotenv
 pprint
 requests
+pytz
