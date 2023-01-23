@@ -59,6 +59,7 @@ def find_issues_prs(response, projects, fellow):
             if url in projects and "pull_request" in item: # if it's a PR
                 fellows[fellow]["prs"].append({
                     "title": item['title'],
+                    "id": item["number"],
                     "url": item['html_url'],
                     "created_at": item['created_at'],
                     "closed_at": item['closed_at'],
@@ -68,6 +69,7 @@ def find_issues_prs(response, projects, fellow):
             elif url in projects and "pull_request" not in item: #if it's an Issue
                 fellows[fellow]["issues"].append({
                     "title": item['title'],
+                    "id": item["number"],
                     "url": item['html_url'],
                     "created_at": item['created_at'],
                     "closed_at": item['closed_at'],
@@ -82,7 +84,7 @@ def find_commits(response, projects, fellow):
             if url in projects:
                 fellows[fellow]['commits'].append({
                     "commit_message": item['commit']['message'],
-                    "url": item['repository']['html_url'],
+                    "url": item['html_url'],
                     "created_at": item['commit']['author']['date']
                 })
 
