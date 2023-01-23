@@ -100,6 +100,6 @@ for fellow in fellows:
     # Add fellow to database, checking for duplicate data
 
     break
-    time.sleep(5)
+    time.sleep(2) # Limited to 30 requests a minute / 1 request every 2 seconds.
 
 
