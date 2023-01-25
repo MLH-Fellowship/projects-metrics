@@ -6,26 +6,40 @@ import time
 import datetime
 import pytz
 import os
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+import pandas as pd
 
 load_dotenv()
 
 fellows = {}
 projects = {}
 
-with open('fellows.csv') as f:
-    lines = f.readlines()
-    for line in lines:
-        fellow = line.strip().split(",")
-        fellows[fellow[0]] = {
-            "github_username": fellow[1],
-            "project": fellow[2],
-            "prs": [],
-            "issues": [],
-            "commits": []
-        }
+# Connect to Google Sheets
+scope = ['https://www.googleapis.com/auth/spreadsheets',
+         "https://www.googleapis.com/auth/drive"]
 
-with open('repos.json') as f:
-    projects = json.load(f)
+credentials = ServiceAccountCredentials.from_json_keyfile_name("gs_credentials.json", scope)
+client = gspread.authorize(credentials)
+
+sheet = client.open_by_url("https://docs.google.com/spreadsheets/d/12quNi2TYuRK40woals-ABPT5NcsmhBmC_dHNU9rX1Do")
+
+activities_data_sh = sheet.worksheet("activities_data")
+fellows_sh = sheet.worksheet("Enrolled Fellows (22.FAL)")
+projects_sh = sheet.worksheet("22.FAL Project Repos")
+
+#
+for row in fellows_sh.get_all_records():
+    fellows[row['Application: Fellow Email Address']] = {
+        "github_username": row['GitHub Handle'],
+        "project": row['Fellowship Project']
+    }
+
+for row in projects_sh.get_all_records():
+    if row['Project Name'] in projects:
+        projects[row['Project Name']].append(row['Repo Link'])
+    else:
+        projects[row['Project Name']] = [row['Repo Link']]
 
 BASE_URL = "https://api.github.com/search/"
 
@@ -57,23 +71,30 @@ def find_issues_prs(response, projects, fellow):
         if datetime.datetime.strptime(item['created_at'], GITHUB_DATE_FORMAT) >= BATCH_START and datetime.datetime.strptime(item['created_at'], GITHUB_DATE_FORMAT) <= BATCH_END:
             # Check PR is in the project
             if url in projects and "pull_request" in item: # if it's a PR
-                fellows[fellow]["prs"].append({
-                    "title": item['title'],
-                    "id": item["number"],
-                    "url": item['html_url'],
-                    "created_at": item['created_at'],
-                    "closed_at": item['closed_at'],
-                    "merged_at": item['pull_request']['merged_at']
-                })
+                
+                activities_data_sh.append_row([fellow,
+                                                fellows[fellow]['github_username'],
+                                                fellows[fellow]['project'],
+                                                item['html_url'],
+                                                "Pull Request", 
+                                                item['title'],
+                                                item['number'],
+                                                item['created_at'],
+                                                item['closed_at'],
+                                                item['pull_request']['merged_at']])
             # Check Issue is in the project
             elif url in projects and "pull_request" not in item: #if it's an Issue
-                fellows[fellow]["issues"].append({
-                    "title": item['title'],
-                    "id": item["number"],
-                    "url": item['html_url'],
-                    "created_at": item['created_at'],
-                    "closed_at": item['closed_at'],
-                })
+                
+                activities_data_sh.append_row([fellow,
+                                                fellows[fellow]['github_username'],
+                                                fellows[fellow]['project'],
+                                                item['html_url'],
+                                                "Issue", 
+                                                item['title'],
+                                                item['number'],
+                                                item['created_at'],
+                                                item['closed_at'],
+                                                "Null"])
 
 # this needs to identify forks
 def find_commits(response, projects, fellow):
@@ -82,16 +103,24 @@ def find_commits(response, projects, fellow):
 
         if (datetime.datetime.strptime(item['commit']['author']['date'], GITHUB_COMMIT_DATE_FORMAT)).replace(tzinfo=utc) >= BATCH_START.replace(tzinfo=utc) and datetime.datetime.strptime(item['commit']['author']['date'], GITHUB_COMMIT_DATE_FORMAT).replace(tzinfo=utc) <= BATCH_END.replace(tzinfo=utc):
             if url in projects:
-                fellows[fellow]['commits'].append({
-                    "commit_message": item['commit']['message'],
-                    "url": item['html_url'],
-                    "created_at": item['commit']['author']['date']
-                })
-
+                activities_data_sh.append_row([fellow,
+                                                fellows[fellow]['github_username'],
+                                                fellows[fellow]['project'],
+                                                item['html_url'],
+                                                "Commit", 
+                                                item['commit']['message'],
+                                                "Null",
+                                                item['commit']['author']['date'],
+                                                "Null",
+                                                "Null"])
 
 # Get info per fellow
 for fellow in fellows:
     print(fellow)
+    
+    if fellows[fellow]['project'] not in projects:
+        continue
+    
     fellow_projects = projects[fellows[fellow]['project']]
     
     issues_response = make_request(ISSUES_URL, fellows[fellow]['github_username'])
@@ -101,7 +130,3 @@ for fellow in fellows:
     find_commits(commits_response, fellow_projects, fellow)
 
     time.sleep(5) # Limited to 30 requests a minute / 1 request every 2 seconds.
-
-with open('output.json', 'w') as f:
-    json.dump(fellows, f)
-
