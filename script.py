@@ -24,22 +24,26 @@ client = gspread.authorize(credentials)
 
 sheet = client.open_by_url("https://docs.google.com/spreadsheets/d/12quNi2TYuRK40woals-ABPT5NcsmhBmC_dHNU9rX1Do")
 
-activities_data_sh = sheet.worksheet("activities_data")
-fellows_sh = sheet.worksheet("Enrolled Fellows (22.FAL)")
-projects_sh = sheet.worksheet("22.FAL Project Repos")
+activities_data_sh = sheet.worksheet("23.SPR Contributions Raw")
+fellows_sh = sheet.worksheet("Enrolled Fellows (22.FAL,23.SPR)")
+projects_sh = sheet.worksheet("Project Repos (22.FAL,23.SPR)")
 
 #
 for row in fellows_sh.get_all_records():
-    fellows[row['Application: Fellow Email Address']] = {
-        "github_username": row['GitHub Handle'],
-        "project": row['Fellowship Project']
-    }
+    if row['Term'] == os.getenv("FW_TERM"):
+        fellows[row['Application: Fellow Email Address']] = {
+            "github_username": row['GitHub Handle'],
+            "project": row['Fellowship Project'],
+            "github_userid": "Null"#requests.get(f"https://api.github.com/users/{row['GitHub Handle']}", auth=(os.getenv("GITHUB_USERNAME"), os.getenv("GITHUB_ACCESS_TOKEN"))).json()['id']
+        }
+    #time.sleep(5)
 
 for row in projects_sh.get_all_records():
-    if row['Project Name'] in projects:
-        projects[row['Project Name']].append(row['Repo Link'])
-    else:
-        projects[row['Project Name']] = [row['Repo Link']]
+    if row['Term'] == os.getenv("FW_TERM"):
+        if row['Project Name'] in projects:
+            projects[row['Project Name']].append(row['Repo Link'])
+        else:
+            projects[row['Project Name']] = [row['Repo Link']]
 
 BASE_URL = "https://api.github.com/search/"
 
@@ -70,11 +74,13 @@ def find_issues_prs(response, projects, fellow):
         # Check dates are within Batch Dates
         if datetime.datetime.strptime(item['created_at'], GITHUB_DATE_FORMAT) >= BATCH_START and datetime.datetime.strptime(item['created_at'], GITHUB_DATE_FORMAT) <= BATCH_END:
             # Check PR is in the project
-            if url in projects and "pull_request" in item: # if it's a PR
+            if url in projects and "pull_request" in item and check_no_duplicates(item['html_url']): # if it's a PR
                 
                 activities_data_sh.append_row([fellow,
+                                                fellows[fellow]['github_userid'],
                                                 fellows[fellow]['github_username'],
                                                 fellows[fellow]['project'],
+                                                item['id'],
                                                 item['html_url'],
                                                 "Pull Request", 
                                                 item['title'],
@@ -83,11 +89,13 @@ def find_issues_prs(response, projects, fellow):
                                                 item['closed_at'],
                                                 item['pull_request']['merged_at']])
             # Check Issue is in the project
-            elif url in projects and "pull_request" not in item: #if it's an Issue
+            elif url in projects and "pull_request" not in item and check_no_duplicates(item['html_url']): #if it's an Issue
                 
                 activities_data_sh.append_row([fellow,
+                                                fellows[fellow]['github_userid'],
                                                 fellows[fellow]['github_username'],
                                                 fellows[fellow]['project'],
+                                                item['id'],
                                                 item['html_url'],
                                                 "Issue", 
                                                 item['title'],
@@ -100,12 +108,14 @@ def find_issues_prs(response, projects, fellow):
 def find_commits(response, projects, fellow):
     for item in response['items']:
         url = item['repository']['html_url']
-
+        
         if (datetime.datetime.strptime(item['commit']['author']['date'], GITHUB_COMMIT_DATE_FORMAT)).replace(tzinfo=utc) >= BATCH_START.replace(tzinfo=utc) and datetime.datetime.strptime(item['commit']['author']['date'], GITHUB_COMMIT_DATE_FORMAT).replace(tzinfo=utc) <= BATCH_END.replace(tzinfo=utc):
-            if url in projects:
+            if url in projects and check_no_duplicates(item['html_url']):
                 activities_data_sh.append_row([fellow,
+                                                fellows[fellow]['github_userid'],
                                                 fellows[fellow]['github_username'],
                                                 fellows[fellow]['project'],
+                                                item['sha'],
                                                 item['html_url'],
                                                 "Commit", 
                                                 item['commit']['message'],
@@ -114,10 +124,18 @@ def find_commits(response, projects, fellow):
                                                 "Null",
                                                 "Null"])
 
+def check_no_duplicates(url):
+    values = activities_data_sh.get("F2:F")
+    for item in values:
+        if item[0].strip() == url:
+            return False
+    return True
+
+
 # Get info per fellow
 for fellow in fellows:
     print(fellow)
-    
+
     if fellows[fellow]['project'] not in projects:
         continue
     
@@ -125,7 +143,7 @@ for fellow in fellows:
     
     issues_response = make_request(ISSUES_URL, fellows[fellow]['github_username'])
     find_issues_prs(issues_response, fellow_projects, fellow)
-    time.sleep(2)
+    time.sleep(5)
     commits_response = make_request(COMMITS_URL, fellows[fellow]['github_username'])
     find_commits(commits_response, fellow_projects, fellow)
 
