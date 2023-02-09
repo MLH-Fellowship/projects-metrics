@@ -1,3 +1,4 @@
 python-dotenv
 requests
 pytz
+gspread
