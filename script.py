@@ -24,7 +24,7 @@ client = gspread.authorize(credentials)
 
 sheet = client.open_by_url("https://docs.google.com/spreadsheets/d/12quNi2TYuRK40woals-ABPT5NcsmhBmC_dHNU9rX1Do")
 
-activities_data_sh = sheet.worksheet("23.SPR Contributions Raw")
+activities_data_sh = sheet.worksheet("activities_data")
 fellows_sh = sheet.worksheet("Enrolled Fellows (22.FAL,23.SPR)")
 projects_sh = sheet.worksheet("Project Repos (22.FAL,23.SPR)")
 
@@ -50,20 +50,23 @@ BASE_URL = "https://api.github.com/search/"
 COMMITS_URL = "commits?q=author:"
 ISSUES_URL = "issues?q=author:"
 
-BATCH_START = datetime.datetime(2022, 9, 19)
-BATCH_END = datetime.datetime(2022, 12, 10)
+BATCH_START = datetime.datetime(2023, 1, 30)
+BATCH_END = datetime.datetime(2023, 4, 22)
 GITHUB_DATE_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 GITHUB_COMMIT_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f%z"
 utc = pytz.utc
 
 def make_request(request_type, user):
     r = None
-    if request_type == ISSUES_URL:
-        r = requests.get(BASE_URL + request_type + user + "&per_page=100", auth=(os.getenv("GITHUB_USERNAME"), os.getenv("GITHUB_ACCESS_TOKEN")))
-    elif request_type == COMMITS_URL:
-        r = requests.get(BASE_URL + request_type + user + "&per_page=100&&sort=author-date", auth=(os.getenv("GITHUB_USERNAME"), os.getenv("GITHUB_ACCESS_TOKEN")))
-
-    return r.json()    
+    try:
+        if request_type == ISSUES_URL:
+            r = requests.get(BASE_URL + request_type + user + "&per_page=100", auth=(os.getenv("GITHUB_USERNAME"), os.getenv("GITHUB_ACCESS_TOKEN")))
+        elif request_type == COMMITS_URL:
+            r = requests.get(BASE_URL + request_type + user + "&per_page=100&&sort=author-date", auth=(os.getenv("GITHUB_USERNAME"), os.getenv("GITHUB_ACCESS_TOKEN")))
+        return r.json()  
+    except:
+        pprint(r.json())
+        return None
 
 def find_issues_prs(response, projects, fellow):
     if "items" not in response:
@@ -142,9 +145,13 @@ for fellow in fellows:
     fellow_projects = projects[fellows[fellow]['project']]
     
     issues_response = make_request(ISSUES_URL, fellows[fellow]['github_username'])
+    if issues_response == None:
+        continue
     find_issues_prs(issues_response, fellow_projects, fellow)
     time.sleep(5)
     commits_response = make_request(COMMITS_URL, fellows[fellow]['github_username'])
+    if commits_response == None:
+        continue
     find_commits(commits_response, fellow_projects, fellow)
 
     time.sleep(5) # Limited to 30 requests a minute / 1 request every 2 seconds.
