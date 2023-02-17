@@ -76,7 +76,7 @@ def find_issues_prs(response, projects, fellow):
         # Check dates are within Batch Dates
         if datetime.datetime.strptime(item['created_at'], GITHUB_DATE_FORMAT) >= BATCH_START and datetime.datetime.strptime(item['created_at'], GITHUB_DATE_FORMAT) <= BATCH_END:
             # Check PR is in the project
-            if url in projects and "pull_request" in item and check_no_duplicates(item['html_url']): # if it's a PR
+            if url in projects and "pull_request" in item and check_no_duplicates(item['html_url'], item['closed_at'], item['pull_request']['merged_at']): # if it's a PR
                 
                 activities_data_sh.append_row([fellow,
                                                 fellows[fellow]['github_userid'],
@@ -91,7 +91,7 @@ def find_issues_prs(response, projects, fellow):
                                                 item['closed_at'],
                                                 item['pull_request']['merged_at']])
             # Check Issue is in the project
-            elif url in projects and "pull_request" not in item and check_no_duplicates(item['html_url']): #if it's an Issue
+            elif url in projects and "pull_request" not in item and check_no_duplicates(item['html_url'], item['closed_at']): #if it's an Issue
                 
                 activities_data_sh.append_row([fellow,
                                                 fellows[fellow]['github_userid'],
@@ -126,10 +126,13 @@ def find_commits(response, projects, fellow):
                                                 "Null",
                                                 "Null"])
 
-def check_no_duplicates(url):
+def check_no_duplicates(url, closed_date="Null", merged_date="Null"):
     values = activities_data_sh.get("F2:F")
-    for item in values:
+    for row, item in enumerate(values):
         if item[0].strip() == url:
+            if closed_date != "Null" or closed_date != None:
+                activities_data_sh.update_acell(f"K{row + 2}", closed_date)
+                activities_data_sh.update_acell(f"L{row + 2}", merged_date)
             return False
     return True
 
