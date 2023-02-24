@@ -27,22 +27,28 @@ activities_data_sh = sheet.worksheet("activities_data")
 fellows_sh = sheet.worksheet("Enrolled Fellows (22.FAL,23.SPR)")
 projects_sh = sheet.worksheet("Project Repos (22.FAL,23.SPR)")
 
-#
+# Get fellows
 for row in fellows_sh.get_all_records():
     if row['Term'] == os.getenv("FW_TERM"):
         fellows[row['Application: Fellow Email Address']] = {
             "github_username": row['GitHub Handle'],
             "project": row['Fellowship Project'],
+            "gitlab_username": row['GitLab Handle'],
             "github_userid": "Null"#requests.get(f"https://api.github.com/users/{row['GitHub Handle']}", auth=(os.getenv("GITHUB_USERNAME"), os.getenv("GITHUB_ACCESS_TOKEN"))).json()['id']
         }
     #time.sleep(5)
 
+# Get projects
 for row in projects_sh.get_all_records():
     if row['Term'] == os.getenv("FW_TERM"):
-        if row['Project Name'] in projects:
-            projects[row['Project Name']].append(row['Repo Link'])
-        else:
-            projects[row['Project Name']] = [row['Repo Link']]
+        if row['Project Name'] not in projects:
+            projects[row['Project Name']] = {
+                "urls": [],
+                "gitlab_ids": []
+            }
+        projects[row['Project Name']]['urls'].append(row['Repo Link'])
+        if row['GitLab Project ID'] != "":
+            projects[row['Project Name']]['gitlab_ids'].append(row['GitLab Project ID'])
 
 BASE_URL = "https://api.github.com/search/"
 
@@ -53,9 +59,10 @@ BATCH_START = datetime.datetime(2023, 1, 30)
 BATCH_END = datetime.datetime(2023, 4, 22)
 GITHUB_DATE_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 GITHUB_COMMIT_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f%z"
+GITLAB_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
 utc = pytz.utc
 
-def make_request(request_type, user):
+def make_gh_request(request_type, user):
     r = None
     try:
         if request_type == ISSUES_URL:
@@ -63,6 +70,15 @@ def make_request(request_type, user):
         elif request_type == COMMITS_URL:
             r = requests.get(BASE_URL + request_type + user + "&per_page=100&&sort=author-date", auth=(os.getenv("GITHUB_USERNAME"), os.getenv("GITHUB_ACCESS_TOKEN")))
         return r.json()  
+    except:
+        pprint(r.json())
+        return None
+    
+def make_gl_request(user, project_id):
+    r = None
+    try:
+        r = requests.get(f"https://gitlab.com/api/v4/projects/{project_id}/merge_requests?author_username={user}", headers={'PRIVATE-TOKEN': os.getenv("GITLAB_ACCESS_TOKEN")})
+        return r.json()
     except:
         pprint(r.json())
         return None
@@ -137,23 +153,45 @@ def check_no_duplicates(url, closed_date="Null", merged_date="Null"):
     return True
 
 
+def find_merge_requests(response, fellow):
+    for mr in response:
+        if datetime.datetime.strptime(mr['created_at'], GITLAB_DATE_FORMAT) >= BATCH_START and datetime.datetime.strptime(mr['created_at'], GITLAB_DATE_FORMAT) <= BATCH_END:
+            if check_no_duplicates(mr['web_url'], mr['closed_at'], mr['merged_at']):
+                activities_data_sh.append_row([fellow,
+                                            fellows[fellow]['github_userid'],
+                                            fellows[fellow]['gitlab_username'],
+                                            fellows[fellow]['project'],
+                                            mr['iid'],
+                                            mr['web_url'],
+                                            "Pull Request",
+                                            mr['title'],
+                                            mr['iid'],
+                                            mr['created_at'],
+                                            mr['closed_at'],
+                                            mr['merged_at']]),
+
+
 # Get info per fellow
 for fellow in fellows:
-    print(fellow)
+    print(f"Fetching data for: {fellow} - {fellows[fellow]['project']}")
 
     if fellows[fellow]['project'] not in projects:
         continue
     
     fellow_projects = projects[fellows[fellow]['project']]
     
-    issues_response = make_request(ISSUES_URL, fellows[fellow]['github_username'])
-    if issues_response == None:
-        continue
-    find_issues_prs(issues_response, fellow_projects, fellow)
+    issues_response = make_gh_request(ISSUES_URL, fellows[fellow]['github_username'])
+    if issues_response != None:
+        find_issues_prs(issues_response, fellow_projects['urls'], fellow)
     time.sleep(5)
-    commits_response = make_request(COMMITS_URL, fellows[fellow]['github_username'])
-    if commits_response == None:
-        continue
-    find_commits(commits_response, fellow_projects, fellow)
+    commits_response = make_gh_request(COMMITS_URL, fellows[fellow]['github_username'])
+    if commits_response != None:
+        find_commits(commits_response, fellow_projects['urls'], fellow)
+
+    if len(fellow_projects['gitlab_ids']) > 0:
+        for gitlab_id in fellow_projects['gitlab_ids']:
+            mr_response = make_gl_request(fellows[fellow]['gitlab_username'], gitlab_id)
+            if mr_response != None:
+                find_merge_requests(mr_response, fellow)
 
     time.sleep(5) # Limited to 30 requests a minute / 1 request every 2 seconds.
