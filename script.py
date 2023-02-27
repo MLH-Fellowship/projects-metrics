@@ -33,7 +33,7 @@ for row in fellows_sh.get_all_records():
         fellows[row['Application: Fellow Email Address']] = {
             "github_username": row['GitHub Handle'],
             "project": row['Fellowship Project'],
-            "gitlab_username": row['GitLab Handle'],
+            "gitlab_username": row['Application: GitLab Handle'],
             "github_userid": "Null"#requests.get(f"https://api.github.com/users/{row['GitHub Handle']}", auth=(os.getenv("GITHUB_USERNAME"), os.getenv("GITHUB_ACCESS_TOKEN"))).json()['id']
         }
     #time.sleep(5)
