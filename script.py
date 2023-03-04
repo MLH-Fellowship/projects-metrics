@@ -146,9 +146,12 @@ def check_no_duplicates(url, closed_date="Null", merged_date="Null"):
     values = activities_data_sh.get("F2:F")
     for row, item in enumerate(values):
         if item[0].strip() == url:
-            if closed_date != "Null" or closed_date != None:
-                activities_data_sh.update_acell(f"K{row + 2}", closed_date)
-                activities_data_sh.update_acell(f"L{row + 2}", merged_date)
+            if closed_date != "Null" and closed_date != None:
+                activities_data_sh.update_acell(f"K{row + 2}", closed_date)                
+                if merged_date != "Null" and merged_date != None:
+                    activities_data_sh.update_acell(f"L{row + 2}", merged_date)
+                time.sleep(0.1)
+
             return False
     return True
 
