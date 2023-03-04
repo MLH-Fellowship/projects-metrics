@@ -74,10 +74,15 @@ def make_gh_request(request_type, user):
         pprint(r.json())
         return None
     
-def make_gl_request(user, project_id):
+def make_gl_request(request_type, user, project_id):
     r = None
     try:
-        r = requests.get(f"https://gitlab.com/api/v4/projects/{project_id}/merge_requests?author_username={user}", headers={'PRIVATE-TOKEN': os.getenv("GITLAB_ACCESS_TOKEN")})
+        if request_type == "merge_request":
+            r = requests.get(f"https://gitlab.com/api/v4/projects/{project_id}/merge_requests?author_username={user}", headers={'PRIVATE-TOKEN': os.getenv("GITLAB_ACCESS_TOKEN")})
+        elif request_type == "issue":
+            r = requests.get(f"https://gitlab.com/api/v4/projects/{project_id}/issues?assignee_username={user}", headers={'PRIVATE-TOKEN': os.getenv("GITLAB_ACCESS_TOKEN")})
+        elif request_type == "commit":
+            r = requests.get(f"https://gitlab.com/api/v4/projects/{project_id}/commits", headers={'PRIVATE-TOKEN': os.getenv("GITLAB_ACCESS_TOKEN")})
         return r.json()
     except:
         pprint(r.json())
@@ -173,6 +178,27 @@ def find_merge_requests(response, fellow):
                                             mr['closed_at'],
                                             mr['merged_at']]),
 
+def find_gl_issues(response, fellow):
+    for issue in response:
+        if datetime.datetime.strptime(issue['created_at'], GITLAB_DATE_FORMAT) >= BATCH_START and datetime.datetime.strptime(issue['created_at'], GITLAB_DATE_FORMAT) <= BATCH_END:
+            if check_no_duplicates(issue['web_url'], issue['closed_at']):
+                activities_data_sh.append_row([fellow,
+                                            fellows[fellow]['github_userid'],
+                                            fellows[fellow]['gitlab_username'],
+                                            fellows[fellow]['project'],
+                                            issue['iid'],
+                                            issue['web_url'],
+                                            "Issue",
+                                            issue['title'],
+                                            issue['iid'],
+                                            issue['created_at'],
+                                            issue['closed_at'],
+                                            "Null"]),
+
+def find_gl_commits(response, fellow):
+    for commit in response:
+         if datetime.datetime.strptime(commit['created_at'], GITLAB_DATE_FORMAT) >= BATCH_START and datetime.datetime.strptime(commit['created_at'], GITLAB_DATE_FORMAT) <= BATCH_END:
+             pass
 
 # Get info per fellow
 for fellow in fellows:
@@ -193,8 +219,11 @@ for fellow in fellows:
 
     if len(fellow_projects['gitlab_ids']) > 0:
         for gitlab_id in fellow_projects['gitlab_ids']:
-            mr_response = make_gl_request(fellows[fellow]['gitlab_username'], gitlab_id)
-            if mr_response != None:
+            mr_response = make_gl_request("merge_request", fellows[fellow]['gitlab_username'], gitlab_id)
+            if mr_response:
                 find_merge_requests(mr_response, fellow)
+            issue_response = make_gl_request("issue", fellows[fellow]['gitlab_username'], gitlab_id)
+            if issue_response:
+                find_gl_issues(issue_response, fellow)
 
     time.sleep(5) # Limited to 30 requests a minute / 1 request every 2 seconds.
