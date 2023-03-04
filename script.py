@@ -50,10 +50,11 @@ for row in projects_sh.get_all_records():
         if row['GitLab Project ID'] != "":
             projects[row['Project Name']]['gitlab_ids'].append(row['GitLab Project ID'])
 
-BASE_URL = "https://api.github.com/search/"
+BASE_URL = "https://api.github.com"
 
 COMMITS_URL = "commits?q=author:"
 ISSUES_URL = "issues?q=author:"
+ISSUE_URL = "issues?assignee"
 
 BATCH_START = datetime.datetime(2023, 1, 30)
 BATCH_END = datetime.datetime(2023, 4, 22)
@@ -62,13 +63,15 @@ GITHUB_COMMIT_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f%z"
 GITLAB_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
 utc = pytz.utc
 
-def make_gh_request(request_type, user):
+def make_gh_request(request_type, user, org=None, project=None):
     r = None
     try:
         if request_type == ISSUES_URL:
-            r = requests.get(BASE_URL + request_type + user + "&per_page=100", auth=(os.getenv("GITHUB_USERNAME"), os.getenv("GITHUB_ACCESS_TOKEN")))
+            r = requests.get(f"{BASE_URL}/search/{request_type}{user}&per_page=100", auth=(os.getenv("GITHUB_USERNAME"), os.getenv("GITHUB_ACCESS_TOKEN")))
         elif request_type == COMMITS_URL:
-            r = requests.get(BASE_URL + request_type + user + "&per_page=100&&sort=author-date", auth=(os.getenv("GITHUB_USERNAME"), os.getenv("GITHUB_ACCESS_TOKEN")))
+            r = requests.get(f"{BASE_URL}/search/{request_type}{user}&per_page=100&&sort=author-date", auth=(os.getenv("GITHUB_USERNAME"), os.getenv("GITHUB_ACCESS_TOKEN")))
+        elif request_type == ISSUE_URL:
+            r = requests.get(f"{BASE_URL}/repos/{org}/{project}/{ISSUE_URL}={user}", auth=(os.getenv("GITHUB_USERNAME"), os.getenv("GITHUB_ACCESS_TOKEN")))
         return r.json()  
     except:
         pprint(r.json())
@@ -147,6 +150,35 @@ def find_commits(response, projects, fellow):
                                                 "Null",
                                                 "Null"])
 
+def find_assigned_issues(response, url, fellow):
+    for issue in response:
+        if datetime.datetime.strptime(issue['created_at'], GITHUB_DATE_FORMAT) >= BATCH_START and datetime.datetime.strptime(issue['created_at'], GITHUB_DATE_FORMAT) <= BATCH_END:
+            if check_no_duplicates(url, issue['closed_at']):
+                activities_data_sh.append_row([fellow,
+                                                fellows[fellow]['github_userid'],
+                                                fellows[fellow]['github_username'],
+                                                fellows[fellow]['project'],
+                                                issue['id'],
+                                                issue['html_url'],
+                                                "Issue", 
+                                                issue['title'],
+                                                issue['number'],
+                                                issue['created_at'],
+                                                issue['closed_at'],
+                                                "Null"])
+
+
+def get_pr_changed_lines(url, row):
+    if "https://github" in url:
+        org = url.split('/')[3]
+        repo_name = url.split('/')[4]
+        pull_id = int(url.split('/')[6])
+        pull_response = requests.get(f"{BASE_URL}/repos/{org}/{repo_name}/pulls/{pull_id}", auth=(os.getenv("GITHUB_USERNAME"), os.getenv("GITHUB_ACCESS_TOKEN"))).json()
+        if pull_response:
+            activities_data_sh.update_acell(f"M{row + 2}", pull_response['additions'])
+            activities_data_sh.update_acell(f"N{row + 2}", pull_response['deletions'])
+
+
 def check_no_duplicates(url, closed_date="Null", merged_date="Null"):
     values = activities_data_sh.get("F2:F")
     for row, item in enumerate(values):
@@ -155,6 +187,7 @@ def check_no_duplicates(url, closed_date="Null", merged_date="Null"):
                 activities_data_sh.update_acell(f"K{row + 2}", closed_date)                
                 if merged_date != "Null" and merged_date != None:
                     activities_data_sh.update_acell(f"L{row + 2}", merged_date)
+                    get_pr_changed_lines(url, row)
                 time.sleep(0.1)
 
             return False
@@ -216,6 +249,15 @@ for fellow in fellows:
     commits_response = make_gh_request(COMMITS_URL, fellows[fellow]['github_username'])
     if commits_response != None:
         find_commits(commits_response, fellow_projects['urls'], fellow)
+
+    for url in fellow_projects['urls']:
+        if "https://github" in url:
+            org = url.split('/')[3]
+            repo_name = url.split('/')[4]
+            gh_issue_response = make_gh_request(ISSUE_URL, fellows[fellow]['github_username'], org=org, project=repo_name)
+            find_assigned_issues(gh_issue_response, url, fellow)
+            time.sleep(5)
+
 
     if len(fellow_projects['gitlab_ids']) > 0:
         for gitlab_id in fellow_projects['gitlab_ids']:
