@@ -150,10 +150,10 @@ def find_commits(response, projects, fellow):
                                                 "Null",
                                                 "Null"])
 
-def find_assigned_issues(response, url, fellow):
+def find_assigned_issues(response, fellow):
     for issue in response:
         if datetime.datetime.strptime(issue['created_at'], GITHUB_DATE_FORMAT) >= BATCH_START and datetime.datetime.strptime(issue['created_at'], GITHUB_DATE_FORMAT) <= BATCH_END:
-            if check_no_duplicates(url, issue['closed_at']):
+            if check_no_duplicates(issue['html_url'], issue['closed_at']):
                 activities_data_sh.append_row([fellow,
                                                 fellows[fellow]['github_userid'],
                                                 fellows[fellow]['github_username'],
@@ -255,7 +255,7 @@ for fellow in fellows:
             org = url.split('/')[3]
             repo_name = url.split('/')[4]
             gh_issue_response = make_gh_request(ISSUE_URL, fellows[fellow]['github_username'], org=org, project=repo_name)
-            find_assigned_issues(gh_issue_response, url, fellow)
+            find_assigned_issues(gh_issue_response, fellow)
             time.sleep(5)
 
 
