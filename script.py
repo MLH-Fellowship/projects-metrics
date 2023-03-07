@@ -177,6 +177,7 @@ def get_pr_changed_lines(url, row):
         if pull_response:
             activities_data_sh.update_acell(f"M{row + 2}", pull_response['additions'])
             activities_data_sh.update_acell(f"N{row + 2}", pull_response['deletions'])
+            activities_data_sh.update_acell(f"O{row + 2}", pull_response['changed_files'])
 
 
 def check_no_duplicates(url, closed_date="Null", merged_date="Null"):
