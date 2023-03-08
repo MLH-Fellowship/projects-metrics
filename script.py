@@ -34,36 +34,34 @@ ISSUES_URL = "issues?q=author:"
 ISSUE_URL = "issues?assignee"
 
 BATCH_START = datetime.datetime(int(os.getenv("PROGRAM_DATE_YEAR")), int(os.getenv("PROGRAM_DATE_START_MONTH")), int(os.getenv("PROGRAM_DATE_START_DAY")))
-BATCH_END = datetime.datetime(int(os.getenv("PROGRAM_DATE_YEAR")), int(os.getenv("PROGRAM_DATE_END_MONTH")), int(os.getenv("PROGRAM_DATE_START_DAY")))
+BATCH_END = datetime.datetime(int(os.getenv("PROGRAM_DATE_YEAR")), int(os.getenv("PROGRAM_DATE_END_MONTH")), int(os.getenv("PROGRAM_DATE_END_DAY")))
 GITHUB_DATE_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 GITHUB_COMMIT_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f%z"
 GITLAB_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
 utc = pytz.utc
 
-# Get fellows
-for row in fellows_sh.get_all_records():
-    if row['Term'] == os.getenv("FW_TERM"):
-        fellows[row['Application: Fellow Email Address']] = {
-            "github_username": row['GitHub Handle'],
-            "project": row['Fellowship Project'],
-            "gitlab_username": row['Application: GitLab Handle'],
-            "github_userid": "Null"#requests.get(f"https://api.github.com/users/{row['GitHub Handle']}", auth=(os.getenv("GITHUB_USERNAME"), os.getenv("GITHUB_ACCESS_TOKEN"))).json()['id']
-        }
-    #time.sleep(5)
-
-# Get projects
-for row in projects_sh.get_all_records():
-    if row['Term'] == os.getenv("FW_TERM"):
-        if row['Project Name'] not in projects:
-            projects[row['Project Name']] = {
-                "urls": [],
-                "gitlab_ids": []
+def get_fellows():
+    for row in fellows_sh.get_all_records():
+        if row['Term'] == os.getenv("FW_TERM"):
+            fellows[row['Application: Fellow Email Address']] = {
+                "github_username": row['GitHub Handle'],
+                "project": row['Fellowship Project'],
+                "gitlab_username": row['Application: GitLab Handle'],
+                "github_userid": "Null"#requests.get(f"https://api.github.com/users/{row['GitHub Handle']}", auth=(os.getenv("GITHUB_USERNAME"), os.getenv("GITHUB_ACCESS_TOKEN"))).json()['id']
             }
-        projects[row['Project Name']]['urls'].append(row['Repo Link'])
-        if row['GitLab Project ID'] != "":
-            projects[row['Project Name']]['gitlab_ids'].append(row['GitLab Project ID'])
 
-# Get info per fellow
+def get_projects():
+    for row in projects_sh.get_all_records():
+        if row['Term'] == os.getenv("FW_TERM"):
+            if row['Project Name'] not in projects:
+                projects[row['Project Name']] = {
+                    "urls": [],
+                    "gitlab_ids": []
+                }
+            projects[row['Project Name']]['urls'].append(row['Repo Link'])
+            if row['GitLab Project ID'] != "":
+                projects[row['Project Name']]['gitlab_ids'].append(row['GitLab Project ID'])
+
 def collect_data():
     for fellow in fellows:
         print(f"Fetching data for: {fellow} - {fellows[fellow]['project']}")
@@ -88,7 +86,6 @@ def collect_data():
                 gh_issue_response = make_gh_request(ISSUE_URL, fellows[fellow]['github_username'], org=org, project=repo_name)
                 find_assigned_issues(gh_issue_response, fellow)
                 time.sleep(5)
-
 
         if len(fellow_projects['gitlab_ids']) > 0:
             for gitlab_id in fellow_projects['gitlab_ids']:
@@ -273,5 +270,7 @@ def find_gl_commits(response, fellow):
 
 
 if __name__ == "__main__":
+    get_fellows()
+    get_projects()
     collect_data()
     
