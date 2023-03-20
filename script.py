@@ -49,6 +49,7 @@ def get_fellows():
                 "gitlab_username": row['Application: GitLab Handle'],
                 "github_userid": "Null"#requests.get(f"https://api.github.com/users/{row['GitHub Handle']}", auth=(os.getenv("GITHUB_USERNAME"), os.getenv("GITHUB_ACCESS_TOKEN"))).json()['id']
             }
+    print(f"Total Fellows: {len(fellows)}")
 
 def get_projects():
     for row in projects_sh.get_all_records():
@@ -72,11 +73,11 @@ def collect_data():
         fellow_projects = projects[fellows[fellow]['project']]
         
         issues_response = make_gh_request(ISSUES_URL, fellows[fellow]['github_username'])
-        if issues_response != None:
+        if issues_response != None and "items" in issues_response:
             find_issues_prs(issues_response, fellow_projects['urls'], fellow)
         time.sleep(5)
         commits_response = make_gh_request(COMMITS_URL, fellows[fellow]['github_username'])
-        if commits_response != None:
+        if commits_response != None and "items" in issues_response:
             find_commits(commits_response, fellow_projects['urls'], fellow)
 
         for url in fellow_projects['urls']:
