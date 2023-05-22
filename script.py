@@ -24,8 +24,8 @@ client = gspread.authorize(credentials)
 sheet = client.open_by_url("https://docs.google.com/spreadsheets/d/12quNi2TYuRK40woals-ABPT5NcsmhBmC_dHNU9rX1Do")
 
 activities_data_sh = sheet.worksheet("activities_data")
-fellows_sh = sheet.worksheet("Enrolled Fellows (22.FAL,23.SPR)")
-projects_sh = sheet.worksheet("Project Repos (22.FAL,23.SPR)")
+fellows_sh = sheet.worksheet("Enrolled Fellows")
+projects_sh = sheet.worksheet("Project Repos")
 
 BASE_URL = "https://api.github.com"
 
