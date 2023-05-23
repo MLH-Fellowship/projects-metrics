@@ -40,9 +40,9 @@ GITHUB_COMMIT_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f%z"
 GITLAB_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
 utc = pytz.utc
 
-def get_fellows():
+def get_fellows(term):
     for row in fellows_sh.get_all_records():
-        if row['Term'] == os.getenv("FW_TERM"):
+        if row['Term'] == term:
             fellows[row['Application: Fellow Email Address']] = {
                 "github_username": row['Application: GitHub Handle'],
                 "project": row['Fellowship Project'],
@@ -271,7 +271,13 @@ def find_gl_commits(response, fellow):
 
 
 if __name__ == "__main__":
-    get_fellows()
+    # Summer A
+    get_fellows(os.getenv("FW_TERM_1"))
+    get_projects()
+    collect_data()
+
+    # Summer B
+    get_fellows(os.getenv("FW_TERM_2"))
     get_projects()
     collect_data()
     
