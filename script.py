@@ -51,9 +51,9 @@ def get_fellows(term):
             }
     print(f"Total Fellows: {len(fellows)}")
 
-def get_projects():
+def get_projects(term):
     for row in projects_sh.get_all_records():
-        if row['Term'] == os.getenv("FW_TERM"):
+        if row['Term'] == term:
             if row['Project Name'] not in projects:
                 projects[row['Project Name']] = {
                     "urls": [],
@@ -272,12 +272,16 @@ def find_gl_commits(response, fellow):
 
 if __name__ == "__main__":
     # Summer A
-    get_fellows(os.getenv("FW_TERM_1"))
-    get_projects()
+    term = os.getenv("FW_TERM_1")
+    get_fellows(term)
+    get_projects(term)
     collect_data()
 
     # Summer B
-    get_fellows(os.getenv("FW_TERM_2"))
-    get_projects()
+    fellows.clear()
+    projects.clear()
+    term = os.getenv("FW_TERM_2")
+    get_fellows(term)
+    get_projects(term)
     collect_data()
     
