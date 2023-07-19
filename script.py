@@ -276,6 +276,7 @@ if __name__ == "__main__":
     get_fellows(term)
     get_projects(term)
     collect_data()
+    print("Summer A Completed")
 
     # Summer B
     fellows.clear()
@@ -284,4 +285,12 @@ if __name__ == "__main__":
     get_fellows(term)
     get_projects(term)
     collect_data()
+    print("Summer B Completed")
     
+    fellows.clear()
+    projects.clear()
+    term = os.getenv("FW_TERM_3")
+    get_fellows(term)
+    get_projects(term)
+    collect_data()
+    print("Summer C Completed")
