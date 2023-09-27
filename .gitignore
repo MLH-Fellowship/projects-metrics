@@ -6,3 +6,4 @@ fellows-all.csv
 output.json
 gs_credentials.json
 .vscode
+__pycache__
