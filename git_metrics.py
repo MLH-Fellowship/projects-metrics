@@ -272,18 +272,11 @@ def find_gl_commits(response, fellow):
 
 if __name__ == "__main__":
     # Summer A
-    term = os.getenv("FW_TERM_1")
+    term = "23.FAL.B"
     get_fellows(term)
     get_projects(term)
     collect_data()
     print(f"{term} Completed")
 
-    # Summer B
-    fellows.clear()
-    projects.clear()
-    term = os.getenv("FW_TERM_2")
-    get_fellows(term)
-    get_projects(term)
-    collect_data()
-    print(f"{term} Completed")
+
     

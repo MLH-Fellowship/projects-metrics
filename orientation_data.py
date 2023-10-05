@@ -166,7 +166,14 @@ def get_pr_changed_lines(url, row):
             orientation_data.update_acell(f"O{row + 2}", pull_response['changed_files'])
 
 if __name__ == "__main__":
-    term = "23.FAL"#os.getenv("FW_TERM_2")
+    term = "23.FAL.A"
+    get_fellows(term)
+    get_projects(term)
+    collect_orientation_data()
+    print(f"Orientation Data Completed for {term}")
+    fellows.clear()
+    projects.clear()
+    term = "23.FAL.B"
     get_fellows(term)
     get_projects(term)
     collect_orientation_data()
