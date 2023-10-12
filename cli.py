@@ -4,6 +4,12 @@ import pprint
 
 commits = []
 
+
+def get_projects():
+    pass
+
+def 
+
 def clone_repo(repo):
 
     try:
@@ -61,12 +67,13 @@ def clone_repo(repo):
             deletions = 0
             count = 0
         count += 1
-    pprint.pprint(commits)
+    return commits
 
 
 # clone repo
-clone_repo("git@github.com:MLH-Fellowship/gh-api-sandbox.git")
+
+if __name__ == "__main__":
+    clone_repo("git@github.com:MLH-Fellowship/gh-api-sandbox.git")
 
 # git log command
 
-# 

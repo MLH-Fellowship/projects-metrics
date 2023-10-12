@@ -6,6 +6,7 @@ import time
 import datetime
 import pytz
 import os
+import helpers
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
@@ -39,29 +40,6 @@ GITHUB_DATE_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 GITHUB_COMMIT_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f%z"
 GITLAB_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
 utc = pytz.utc
-
-def get_fellows(term):
-    for row in fellows_sh.get_all_records():
-        if row['Term'] == term:
-            fellows[row['Application: Fellow Email Address']] = {
-                "github_username": row['Application: GitHub Handle'],
-                "project": row['Fellowship Project'],
-                "gitlab_username": row['Application: GitLab Handle'],
-                "github_userid": "Null"#requests.get(f"https://api.github.com/users/{row['GitHub Handle']}", auth=(os.getenv("GITHUB_USERNAME"), os.getenv("GITHUB_ACCESS_TOKEN"))).json()['id']
-            }
-    print(f"Total Fellows: {len(fellows)}")
-
-def get_projects(term):
-    for row in projects_sh.get_all_records():
-        if row['Term'] == term:
-            if row['Project Name'] not in projects:
-                projects[row['Project Name']] = {
-                    "urls": [],
-                    "gitlab_ids": []
-                }
-            projects[row['Project Name']]['urls'].append(row['Repo Link'])
-            if row['GitLab Project ID'] != "":
-                projects[row['Project Name']]['gitlab_ids'].append(row['GitLab Project ID'])
 
 def collect_data():
     for fellow in fellows:
@@ -128,20 +106,6 @@ def make_gl_request(request_type, user, project_id):
         pprint(r.json())
         return None
 
-def check_no_duplicates(url, closed_date="Null", merged_date="Null"):
-    values = activities_data_sh.get("F2:F")
-    for row, item in enumerate(values):
-        if item[0].strip() == url:
-            if closed_date != "Null" and closed_date != None:
-                activities_data_sh.update_acell(f"K{row + 2}", closed_date)                
-            if merged_date != "Null" and merged_date != None:
-                activities_data_sh.update_acell(f"L{row + 2}", merged_date)
-                get_pr_changed_lines(url, row)
-            time.sleep(0.1)
-
-            return False
-    return True
-
 
 def find_issues_prs(response, projects, fellow):
     if "items" not in response:
@@ -152,35 +116,16 @@ def find_issues_prs(response, projects, fellow):
         # Check dates are within Batch Dates
         if datetime.datetime.strptime(item['created_at'], GITHUB_DATE_FORMAT) >= BATCH_START and datetime.datetime.strptime(item['created_at'], GITHUB_DATE_FORMAT) <= BATCH_END:
             # Check PR is in the project
-            if url in projects and "pull_request" in item and check_no_duplicates(item['html_url'], item['closed_at'], item['pull_request']['merged_at']): # if it's a PR
+            if url in projects and "pull_request" in item:
+                helpers.add_to_db(email=fellow, github_id=fellows[fellow]['github_userid'], github_username=fellows[fellow]['github_username'],
+                                  project=fellows[fellow]['project'], id=item['id'], url=item['html_url'], type="Pull Request", message=item['title'], 
+                                  number=item['number'], created_at=item['created_at'], closed_at=item['closed_at'], merged_at=item['pull_request']['merged_at'])
                 
-                activities_data_sh.append_row([fellow,
-                                                fellows[fellow]['github_userid'],
-                                                fellows[fellow]['github_username'],
-                                                fellows[fellow]['project'],
-                                                item['id'],
-                                                item['html_url'],
-                                                "Pull Request", 
-                                                item['title'],
-                                                item['number'],
-                                                item['created_at'],
-                                                item['closed_at'],
-                                                item['pull_request']['merged_at']])
             # Check Issue is in the project
-            elif url in projects and "pull_request" not in item and check_no_duplicates(item['html_url'], item['closed_at']): #if it's an Issue
-                
-                activities_data_sh.append_row([fellow,
-                                                fellows[fellow]['github_userid'],
-                                                fellows[fellow]['github_username'],
-                                                fellows[fellow]['project'],
-                                                item['id'],
-                                                item['html_url'],
-                                                "Issue", 
-                                                item['title'],
-                                                item['number'],
-                                                item['created_at'],
-                                                item['closed_at'],
-                                                "Null"])
+            elif url in projects and "pull_request" not in item:
+                helpers.add_to_db(email=fellow, github_id=fellows[fellow]['github_userid'], github_username=fellows[fellow]['github_username'],
+                                  project=fellows[fellow]['project'], id=item['id'], url=item['html_url'], type="Issue", message=item['title'], 
+                                  number=item['number'], created_at=item['created_at'], closed_at=item['closed_at'])
 
 # this needs to identify forks
 def find_commits(response, projects, fellow):
@@ -188,36 +133,17 @@ def find_commits(response, projects, fellow):
         url = item['repository']['html_url']
         
         if (datetime.datetime.strptime(item['commit']['author']['date'], GITHUB_COMMIT_DATE_FORMAT)).replace(tzinfo=utc) >= BATCH_START.replace(tzinfo=utc) and datetime.datetime.strptime(item['commit']['author']['date'], GITHUB_COMMIT_DATE_FORMAT).replace(tzinfo=utc) <= BATCH_END.replace(tzinfo=utc):
-            if url in projects and check_no_duplicates(item['html_url']):
-                activities_data_sh.append_row([fellow,
-                                                fellows[fellow]['github_userid'],
-                                                fellows[fellow]['github_username'],
-                                                fellows[fellow]['project'],
-                                                item['sha'],
-                                                item['html_url'],
-                                                "Commit", 
-                                                item['commit']['message'],
-                                                "Null",
-                                                item['commit']['author']['date'],
-                                                "Null",
-                                                "Null"])
+            if url in projects:
+                helpers.add_to_db(email=fellow, github_id=fellows[fellow]['github_userid'], github_username=fellows[fellow]['github_username'], 
+                                  project=fellows[fellow]['project'], id=item['sha'], url=item['html_url'], type="Commit", message=item['commit']['message'], 
+                                  created_at=item['commit']['author']['date'])
 
 def find_assigned_issues(response, fellow):
     for issue in response:
         if datetime.datetime.strptime(issue['created_at'], GITHUB_DATE_FORMAT) >= BATCH_START and datetime.datetime.strptime(issue['created_at'], GITHUB_DATE_FORMAT) <= BATCH_END:
-            if check_no_duplicates(issue['html_url'], issue['closed_at']):
-                activities_data_sh.append_row([fellow,
-                                                fellows[fellow]['github_userid'],
-                                                fellows[fellow]['github_username'],
-                                                fellows[fellow]['project'],
-                                                issue['id'],
-                                                issue['html_url'],
-                                                "Issue", 
-                                                issue['title'],
-                                                issue['number'],
-                                                issue['created_at'],
-                                                issue['closed_at'],
-                                                "Null"])
+            helpers.add_to_db(email=fellow, github_id=fellows[fellow]['github_userid'], github_username=fellows[fellow]['github_username'], 
+                              project=fellows[fellow]['project'], id=issue['id'], url=issue['html_url'], type="Issue", message=issue['title'], 
+                              number=issue['number'], created_at=issue['created_at'], closed_at=issue['closed_at'])
 
 def get_pr_changed_lines(url, row):
     if "https://github" in url:
@@ -233,36 +159,18 @@ def get_pr_changed_lines(url, row):
 def find_merge_requests(response, fellow):
     for mr in response:
         if datetime.datetime.strptime(mr['created_at'], GITLAB_DATE_FORMAT) >= BATCH_START and datetime.datetime.strptime(mr['created_at'], GITLAB_DATE_FORMAT) <= BATCH_END:
-            if check_no_duplicates(mr['web_url'], mr['closed_at'], mr['merged_at']):
-                activities_data_sh.append_row([fellow,
-                                            fellows[fellow]['github_userid'],
-                                            fellows[fellow]['gitlab_username'],
-                                            fellows[fellow]['project'],
-                                            mr['iid'],
-                                            mr['web_url'],
-                                            "Pull Request",
-                                            mr['title'],
-                                            mr['iid'],
-                                            mr['created_at'],
-                                            mr['closed_at'],
-                                            mr['merged_at']]),
+            helpers.add_to_db(email=fellow, github_id=fellows[fellow]['github_userid'], github_username=fellows[fellow]['gitlab_username'], 
+                              project=fellows[fellow]['project'], id=mr['iid'], url=mr['web_url'], type="Pull Request", message=mr['title'], 
+                              number=mr['iid'], created_at=mr['created_at'], closed_at=mr['closed_at'], merged_at=mr['merged_at'])
+
 
 def find_gl_issues(response, fellow):
     for issue in response:
         if datetime.datetime.strptime(issue['created_at'], GITLAB_DATE_FORMAT) >= BATCH_START and datetime.datetime.strptime(issue['created_at'], GITLAB_DATE_FORMAT) <= BATCH_END:
-            if check_no_duplicates(issue['web_url'], issue['closed_at']):
-                activities_data_sh.append_row([fellow,
-                                            fellows[fellow]['github_userid'],
-                                            fellows[fellow]['gitlab_username'],
-                                            fellows[fellow]['project'],
-                                            issue['iid'],
-                                            issue['web_url'],
-                                            "Issue",
-                                            issue['title'],
-                                            issue['iid'],
-                                            issue['created_at'],
-                                            issue['closed_at'],
-                                            "Null"]),
+            helpers.add_to_db(email=fellow, github_id=fellows[fellow]['github_userid'], 
+                              github_username=fellows[fellow]['gitlab_username'], project=fellows[fellow]['project'], 
+                              id=issue['iid'], url=issue['web_url'], type="Issue", message=issue['title'], number=issue['iid'],
+                              created_at=issue['created_at'], closed_at=issue['closed_at'])
 
 def find_gl_commits(response, fellow):
     for commit in response:
@@ -271,10 +179,9 @@ def find_gl_commits(response, fellow):
 
 
 if __name__ == "__main__":
-    # Summer A
     term = "23.FAL.B"
-    get_fellows(term)
-    get_projects(term)
+    fellows = helpers.get_fellows(term)
+    projects = helpers.get_projects(term)
     collect_data()
     print(f"{term} Completed")
 
