@@ -136,7 +136,7 @@ def find_commits(response, projects, fellow):
             if url in projects:
                 helpers.add_to_db(email=fellow, github_id=fellows[fellow]['github_userid'], github_username=fellows[fellow]['github_username'], 
                                   project=fellows[fellow]['project'], id=item['sha'], url=item['html_url'], type="Commit", message=item['commit']['message'], 
-                                  created_at=item['commit']['author']['date'])
+                                  number="Null", created_at=item['commit']['author']['date'])
 
 def find_assigned_issues(response, fellow):
     for issue in response:
@@ -179,7 +179,7 @@ def find_gl_commits(response, fellow):
 
 
 if __name__ == "__main__":
-    term = "23.FAL.B"
+    term = "23.FAL.A"
     fellows = helpers.get_fellows(term)
     projects = helpers.get_projects(term)
     collect_data()

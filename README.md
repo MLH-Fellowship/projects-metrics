@@ -2,6 +2,13 @@
 
 A script to automatically pull the data from GitHub about Fellowship Projects and store them in a database.
 
+### `git_metrics.py`
+Collects everything for fellows and projects during a specific fellowship batch
+
+### `orientation_data.py`
+Collects everything for fellows on their Orientation Project in Week 1 and 2 during a specific fellowship batch
+
+
 ## Setup 
 
 Ensure Project Repos are in this [sheet](https://docs.google.com/spreadsheets/d/12quNi2TYuRK40woals-ABPT5NcsmhBmC_dHNU9rX1Do/edit#gid=0)

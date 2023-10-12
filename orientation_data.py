@@ -9,6 +9,7 @@ import os
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import git_metrics
+import helpers
 
 load_dotenv()
 
@@ -27,27 +28,6 @@ sheet = client.open_by_url("https://docs.google.com/spreadsheets/d/12quNi2TYuRK4
 fellows_sh = sheet.worksheet("Enrolled Fellows")
 orientation_projects = sheet.worksheet("Orientation Projects")
 orientation_data = sheet.worksheet("Orientation Data")
-
-def get_fellows(term):
-    for row in fellows_sh.get_all_records():
-        if row['Term'] == term:
-            fellows[row['Application: Fellow Email Address']] = {
-                "github_username": row['Application: GitHub Handle'],
-                "term": row['Term'],
-                "pod": row['Pod Name']
-            }
-    print(f"Total Fellows: {len(fellows)}")
-
-def get_projects(term):
-    for row in orientation_projects.get_all_records():
-        if row['Term'] == term:
-            if row['Project Name'] not in projects:
-                projects[row['Project Name']] = {
-                    "urls": [],
-                    "term": row['Term']
-                }
-            projects[row['Project Name']]['urls'].append(row['Repo Link'])
-    print(f"Total Projects: {len(projects)}")
 
 def collect_orientation_data():
     for fellow in fellows:
@@ -166,15 +146,8 @@ def get_pr_changed_lines(url, row):
             orientation_data.update_acell(f"O{row + 2}", pull_response['changed_files'])
 
 if __name__ == "__main__":
-    term = "23.FAL.A"
-    get_fellows(term)
-    get_projects(term)
-    collect_orientation_data()
-    print(f"Orientation Data Completed for {term}")
-    fellows.clear()
-    projects.clear()
     term = "23.FAL.B"
-    get_fellows(term)
-    get_projects(term)
+    helpers.get_fellows(term)
+    helpers.get_projects(term)
     collect_orientation_data()
     print(f"Orientation Data Completed for {term}")
