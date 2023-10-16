@@ -1,28 +1,24 @@
 import os
 import subprocess
-import pprint
 
-commits = []
-
-
-def get_projects():
-    pass
-
-def 
-
-def clone_repo(repo):
-
+def collect_commits(url, fellow):
+    commits = []
+    print(f"Getting commits for {url}")
     try:
         os.makedirs("repos")
     except Exception as e:
-        print(e)
+        pass
     
     os.chdir("repos")
-    os.system(f"git clone {repo} repo")
+    if url == "":
+        return commits
+    os.system(f"git clone {url} repo >/dev/null 2>&1")
     os.chdir("repo")
-    raw_output = subprocess.check_output("git log --author=will@mlh.io --all --stat | awk '{print}'", shell=True).rstrip()
+    raw_output = subprocess.check_output("git log --author=" + fellow + " --all --stat | awk '{print}'", shell=True).rstrip()
     os.chdir("../")
     os.system("rm -rf repo")
+    os.chdir("../")
+    os.system("rm -rf repos")
     output = raw_output.decode('utf-8')
     lines = output.split('\n')
     sha = ""
@@ -31,9 +27,9 @@ def clone_repo(repo):
     message = ""
     additions = 0
     deletions = 0
+    files_changed = 0
     count = 0
-    for index, line in enumerate(lines):
-        print(f"{index}: {line}")
+    for line in lines:
         items = line.strip().split(' ')
         if items[0] == "commit":
             sha = items[1]
@@ -47,17 +43,20 @@ def clone_repo(repo):
             message = line.strip()
         if "file changed" in line or "files changed" in line:
             for i, item in enumerate(items):
+                if 'file' in item:
+                    files_changed = int(items[i - 1])
                 if 'insertion' in item:
-                    additions = items[i - 1]
+                    additions = int(items[i - 1])
                 if 'deletion' in item:
-                    deletions = items[i - 1]
+                    deletions = int(items[i - 1])
             commits.append({
                 "sha": sha,
                 "email": email,
                 "date": date,
                 "message": message,
                 "additions": additions,
-                "deletions": deletions
+                "deletions": deletions,
+                "files_changed": files_changed
             })
             sha = ""
             email = ""
@@ -65,15 +64,7 @@ def clone_repo(repo):
             message = ""
             additions = 0
             deletions = 0
+            files_changed = 0
             count = 0
         count += 1
     return commits
-
-
-# clone repo
-
-if __name__ == "__main__":
-    clone_repo("git@github.com:MLH-Fellowship/gh-api-sandbox.git")
-
-# git log command
-

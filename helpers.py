@@ -51,6 +51,7 @@ def add_to_db(email, github_id, github_username, project, id,
     activities_data_sh = sheet.worksheet("activities_data")
     print(f"Checking for duplicates - {id}")
     if check_no_duplicates(url, created_at, merged_at):
+        print(f"Url to add: {url}")
         activities_data_sh.append_row([email,
                                        github_id,
                                        github_username,

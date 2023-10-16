@@ -8,6 +8,7 @@ import pytz
 import os
 import helpers
 import gspread
+import cli
 from oauth2client.service_account import ServiceAccountCredentials
 
 load_dotenv()
@@ -25,8 +26,6 @@ client = gspread.authorize(credentials)
 sheet = client.open_by_url("https://docs.google.com/spreadsheets/d/12quNi2TYuRK40woals-ABPT5NcsmhBmC_dHNU9rX1Do")
 
 activities_data_sh = sheet.worksheet("activities_data")
-fellows_sh = sheet.worksheet("Enrolled Fellows")
-projects_sh = sheet.worksheet("Project Repos")
 
 BASE_URL = "https://api.github.com"
 
@@ -54,9 +53,15 @@ def collect_data():
         if issues_response != None and "items" in issues_response:
             find_issues_prs(issues_response, fellow_projects['urls'], fellow)
         time.sleep(5)
-        commits_response = make_gh_request(COMMITS_URL, fellows[fellow]['github_username'])
-        if commits_response != None and "items" in issues_response:
-            find_commits(commits_response, fellow_projects['urls'], fellow)
+
+
+        for url in fellow_projects['urls']:
+            commits = cli.collect_commits(url, fellow)
+            for commit in commits:
+                print(f"Adding {commit['sha']} to db")
+                helpers.add_to_db(email=fellow, github_id=fellows[fellow]['github_userid'], github_username=fellows[fellow]['github_username'], 
+                                  project=fellows[fellow]['project'], id=commit['sha'], url=f"{url}/commit/{commit['sha']}", type="Commit", message=commit['message'], number="Null", 
+                                  created_at=commit['date'], additions=commit['additions'], deletions=commit['deletions'], files_changed=commit['files_changed'])
 
         for url in fellow_projects['urls']:
             if "https://github" in url:
