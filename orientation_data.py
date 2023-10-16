@@ -29,8 +29,19 @@ fellows_sh = sheet.worksheet("Enrolled Fellows")
 orientation_projects = sheet.worksheet("Orientation Projects")
 orientation_data = sheet.worksheet("Orientation Data")
 
+def get_orientation_projects(term):
+    for row in orientation_projects.get_all_records():
+        if row['Term'] == term:
+            if row['Project Name'] not in projects:
+                projects[row['Project Name']] = {
+                    "urls": [],
+                    "term": row['Term']
+                }
+            projects[row['Project Name']]['urls'].append(row['Repo Link'])
+    print(f"Total Projects: {len(projects)}")
+
 def collect_orientation_data():
-    for fellow in fellows:
+    for fellow in fellows:  
         for project in projects:
         
             # PRs
@@ -147,7 +158,7 @@ def get_pr_changed_lines(url, row):
 
 if __name__ == "__main__":
     term = "23.FAL.B"
-    helpers.get_fellows(term)
-    helpers.get_projects(term)
+    fellows = helpers.get_fellows(term)
+    get_orientation_projects(term)
     collect_orientation_data()
     print(f"Orientation Data Completed for {term}")

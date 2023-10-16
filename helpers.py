@@ -21,7 +21,9 @@ def get_fellows(term):
                 "github_username": row['Application: GitHub Handle'],
                 "project": row['Fellowship Project'],
                 "gitlab_username": row['Application: GitLab Handle'],
-                "github_userid": "Null"
+                "github_userid": "Null",
+                "term": row['Term'],
+                "pod": row['Pod Name']
             }
     print(f"Total Fellows: {len(fellows)}")
     return fellows 
@@ -47,6 +49,7 @@ def add_to_db(email, github_id, github_username, project, id,
               url, type, message, number, created_at, closed_at="Null", 
               merged_at="Null", additions="Null", deletions="Null", files_changed="Null"):
     activities_data_sh = sheet.worksheet("activities_data")
+    print(f"Checking for duplicates - {id}")
     if check_no_duplicates(url, created_at, merged_at):
         activities_data_sh.append_row([email,
                                        github_id,
