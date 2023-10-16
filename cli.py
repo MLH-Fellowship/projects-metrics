@@ -11,16 +11,15 @@ def collect_commits(url, fellow):
     
     os.chdir("repos")
     if url == "":
+        print("Repo URL is blank")
         return commits
     os.system(f"git clone {url} repo >/dev/null 2>&1")
     os.chdir("repo")
+
     raw_output = subprocess.check_output("git log --author=" + fellow + " --all --stat | awk '{print}'", shell=True).rstrip()
-    os.chdir("../")
-    os.system("rm -rf repo")
-    os.chdir("../")
-    os.system("rm -rf repos")
     output = raw_output.decode('utf-8')
     lines = output.split('\n')
+
     sha = ""
     email = ""
     date = ""
@@ -29,6 +28,7 @@ def collect_commits(url, fellow):
     deletions = 0
     files_changed = 0
     count = 0
+    
     for line in lines:
         items = line.strip().split(' ')
         if items[0] == "commit":
@@ -67,4 +67,9 @@ def collect_commits(url, fellow):
             files_changed = 0
             count = 0
         count += 1
+    print(f"Returning {len(commits)} commits")
+    os.chdir("../")
+    os.system("rm -rf repo")
+    os.chdir("../")
+    os.system("rm -rf repos")
     return commits

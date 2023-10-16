@@ -188,6 +188,12 @@ if __name__ == "__main__":
     fellows = helpers.get_fellows(term)
     projects = helpers.get_projects(term)
     collect_data()
+    fellows.clear()
+    projects.clear()
+    term = "23.FAL.B"
+    fellows = helpers.get_fellows(term)
+    projects = helpers.get_projects(term)
+    collect_data()
     print(f"{term} Completed")
 
 
