@@ -3,7 +3,6 @@ import subprocess
 
 def collect_commits(url, fellow):
     commits = []
-    print(f"Getting commits for {url}")
     try:
         os.makedirs("repos")
     except Exception as e:
@@ -67,7 +66,8 @@ def collect_commits(url, fellow):
             files_changed = 0
             count = 0
         count += 1
-    print(f"Returning {len(commits)} commits")
+    if len(commits) > 0:
+        print(f"Returning {len(commits)} commits")
     os.chdir("../")
     os.system("rm -rf repo")
     os.chdir("../")
