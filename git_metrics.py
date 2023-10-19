@@ -1,5 +1,4 @@
 from dotenv import load_dotenv
-import json
 from pprint import pprint
 import requests
 import time
@@ -33,8 +32,15 @@ COMMITS_URL = "commits?q=author:"
 ISSUES_URL = "issues?q=author:"
 ISSUE_URL = "issues?assignee"
 
-BATCH_START = datetime.datetime(int(os.getenv("PROGRAM_DATE_YEAR")), int(os.getenv("PROGRAM_DATE_START_MONTH")), int(os.getenv("PROGRAM_DATE_START_DAY")))
-BATCH_END = datetime.datetime(int(os.getenv("PROGRAM_DATE_YEAR")), int(os.getenv("PROGRAM_DATE_END_MONTH")), int(os.getenv("PROGRAM_DATE_END_DAY")))
+PROGRAM_DATE_START_YEAR = 2023 #int(os.getenv("PROGRAM_DATE_YEAR"))
+PROGRAM_DATE_END_YEAR = 2023 #int(os.getenv("PROGRAM_DATE_YEAR"))
+PROGRAM_DATE_START_MONTH = 9 #int(os.getenv("PROGRAM_DATE_START_MONTH"))
+PROGRAM_DATE_END_MONTH = 12 #int(os.getenv("PROGRAM_DATE_END_MONTH")
+PROGRAM_DATE_START_DAY = 18 #int(os.getenv("PROGRAM_DATE_START_DAY"))
+PROGRAM_DATE_END_DAY = 10 #int(os.getenv("PROGRAM_DATE_END_DAY"))
+
+BATCH_START = datetime.datetime(PROGRAM_DATE_START_YEAR, PROGRAM_DATE_START_MONTH, PROGRAM_DATE_START_DAY)
+BATCH_END = datetime.datetime(PROGRAM_DATE_END_YEAR, PROGRAM_DATE_END_MONTH, PROGRAM_DATE_END_DAY)
 GITHUB_DATE_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 GITHUB_COMMIT_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f%z"
 GITLAB_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
@@ -49,12 +55,13 @@ def collect_data():
         
         fellow_projects = projects[fellows[fellow]['project']]
         
+        print("Getting PRs/Issues")
         issues_response = make_gh_request(ISSUES_URL, fellows[fellow]['github_username'])
         if issues_response != None and "items" in issues_response:
             find_issues_prs(issues_response, fellow_projects['urls'], fellow)
         time.sleep(5)
 
-
+        print("Getting commits")
         for url in fellow_projects['urls']:
             commits = cli.collect_commits(url, fellow)
             for commit in commits:
@@ -87,9 +94,9 @@ def make_gh_request(request_type, user, org=None, project=None):
     r = None
     try:
         if request_type == ISSUES_URL:
-            r = requests.get(f"{BASE_URL}/search/{request_type}{user}&per_page=100", auth=(os.getenv("GITHUB_USERNAME"), os.getenv("GITHUB_ACCESS_TOKEN")))
+            r = requests.get(f"{BASE_URL}/search/{request_type}{user} created:<{PROGRAM_DATE_END_YEAR}-{'{:0>{}}'.format(PROGRAM_DATE_END_MONTH, 2)}-{'{:0>{}}'.format(PROGRAM_DATE_END_DAY, 2)}&per_page=100", auth=(os.getenv("GITHUB_USERNAME"), os.getenv("GITHUB_ACCESS_TOKEN")))
         elif request_type == COMMITS_URL:
-            r = requests.get(f"{BASE_URL}/search/{request_type}{user}&per_page=100&&sort=author-date", auth=(os.getenv("GITHUB_USERNAME"), os.getenv("GITHUB_ACCESS_TOKEN")))
+            r = requests.get(f"{BASE_URL}/search/{request_type}{user}created:<{PROGRAM_DATE_END_YEAR}-{'{:0>{}}'.format(PROGRAM_DATE_END_MONTH, 2)}-{'{:0>{}}'.format(PROGRAM_DATE_END_DAY, 2)}&per_page=100&&sort=author-date", auth=(os.getenv("GITHUB_USERNAME"), os.getenv("GITHUB_ACCESS_TOKEN")))
         elif request_type == ISSUE_URL:
             r = requests.get(f"{BASE_URL}/repos/{org}/{project}/{ISSUE_URL}={user}", auth=(os.getenv("GITHUB_USERNAME"), os.getenv("GITHUB_ACCESS_TOKEN")))
         return r.json()  
@@ -116,7 +123,7 @@ def find_issues_prs(response, projects, fellow):
     if "items" not in response:
         pprint(response)
     for item in response["items"]:
-        url = '/'.join(item['html_url'].split('/')[:5])
+        url = '/'.join(item['html_url'].split('/')[:5]).lower()
         
         # Check dates are within Batch Dates
         if datetime.datetime.strptime(item['created_at'], GITHUB_DATE_FORMAT) >= BATCH_START and datetime.datetime.strptime(item['created_at'], GITHUB_DATE_FORMAT) <= BATCH_END:
@@ -144,6 +151,8 @@ def find_commits(response, projects, fellow):
                                   number="Null", created_at=item['commit']['author']['date'])
 
 def find_assigned_issues(response, fellow):
+    if "errors" in response:
+        return
     for issue in response:
         if datetime.datetime.strptime(issue['created_at'], GITHUB_DATE_FORMAT) >= BATCH_START and datetime.datetime.strptime(issue['created_at'], GITHUB_DATE_FORMAT) <= BATCH_END:
             helpers.add_to_db(email=fellow, github_id=fellows[fellow]['github_userid'], github_username=fellows[fellow]['github_username'], 
@@ -184,17 +193,14 @@ def find_gl_commits(response, fellow):
 
 
 if __name__ == "__main__":
-    term = "23.FAL.A"
-    fellows = helpers.get_fellows(term)
-    projects = helpers.get_projects(term)
-    collect_data()
-    fellows.clear()
-    projects.clear()
+    #term = "23.FAL.A"
+    #fellows = helpers.get_fellows(term)
+    #projects = helpers.get_projects(term)
+    #collect_data()
+    #fellows.clear()
+    #projects.clear()
     term = "23.FAL.B"
     fellows = helpers.get_fellows(term)
     projects = helpers.get_projects(term)
     collect_data()
     print(f"{term} Completed")
-
-
-    

@@ -39,10 +39,9 @@ def get_projects(term):
                     "urls": [],
                     "gitlab_ids": []
                 }
-            projects[row['Project Name']]['urls'].append(row['Repo Link'])
+            projects[row['Project Name']]['urls'].append(row['Repo Link'].lower())
             if row['GitLab Project ID'] != "":
                 projects[row['Project Name']]['gitlab_ids'].append(row['GitLab Project ID'])
-
     return projects
 
 def add_to_db(email, github_id, github_username, project, id, 
@@ -73,6 +72,7 @@ def add_to_db(email, github_id, github_username, project, id,
 def check_no_duplicates(url, closed_date="Null", merged_date="Null"):
     activities_data_sh = sheet.worksheet("activities_data")
     values = activities_data_sh.get("F2:F")
+    time.sleep(5) # Prevent rate limiting
     for row, item in enumerate(values):
         if item[0].strip() == url:
             if closed_date != "Null" and closed_date != None:
@@ -80,7 +80,6 @@ def check_no_duplicates(url, closed_date="Null", merged_date="Null"):
             if merged_date != "Null" and merged_date != None:
                 activities_data_sh.update_acell(f"L{row + 2}", merged_date)
                 get_pr_changed_lines(url, row)
-            time.sleep(0.1)
 
             return False
     return True
