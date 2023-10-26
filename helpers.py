@@ -48,7 +48,7 @@ def add_to_db(email, github_id, github_username, project, id,
               url, type, message, number, created_at, closed_at="Null", 
               merged_at="Null", additions="Null", deletions="Null", files_changed="Null"):
     activities_data_sh = sheet.worksheet("activities_data")
-    if check_no_duplicates(url, closed_at, merged_at):
+    if check_no_duplicates(url, id, closed_at, merged_at):
         print(f"Url to add: {url}")
         activities_data_sh.append_row([email,
                                        github_id,
@@ -69,20 +69,20 @@ def add_to_db(email, github_id, github_username, project, id,
         print(f"Duplicate, skipping - {url}")
 
 
-def check_no_duplicates(url, closed_date="Null", merged_date="Null"):
+def check_no_duplicates(url, id, closed_date="Null", merged_date="Null"):
     activities_data_sh = sheet.worksheet("activities_data")
-    values = activities_data_sh.get("F2:F")
+    values = activities_data_sh.get("E2:E")
     time.sleep(5) # Prevent rate limiting
     for row, item in enumerate(values):
-        if item[0].strip() == url:
+        if len(item) > 0 and str(item[0].strip()) == str(id):
             if closed_date != "Null" and closed_date != None:
                 activities_data_sh.update_acell(f"K{row + 2}", closed_date)                
             if merged_date != "Null" and merged_date != None:
                 activities_data_sh.update_acell(f"L{row + 2}", merged_date)
                 get_pr_changed_lines(url, row)
-
             return False
     return True
+
 def get_pr_changed_lines(url, row):
     activities_data_sh = sheet.worksheet("activities_data")
     if "https://github" in url:
