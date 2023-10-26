@@ -25,8 +25,7 @@ def get_duplicates():
         if len(duplicates[item]) == 1:
             duplicates.pop(item)
     
-    
-
     pprint.pprint(duplicates)
     print(f"Total duplicates: {len(duplicates)}")
+
 get_duplicates()
