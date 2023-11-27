@@ -13,7 +13,11 @@ def collect_commits(url, fellow):
         print("Repo URL is blank")
         return commits
     os.system(f"git clone {url} repo >/dev/null 2>&1")
-    os.chdir("repo")
+    try:
+        os.chdir("repo")
+    except:
+        print("Repo invalid")
+        return commits
 
     raw_output = subprocess.check_output("git log --author=" + fellow + " --all --stat | awk '{print}'", shell=True).rstrip()
     output = raw_output.decode('utf-8')
