@@ -36,8 +36,8 @@ PROGRAM_DATE_START_YEAR = 2023 #int(os.getenv("PROGRAM_DATE_YEAR"))
 PROGRAM_DATE_END_YEAR = 2023 #int(os.getenv("PROGRAM_DATE_YEAR"))
 PROGRAM_DATE_START_MONTH = 9 #int(os.getenv("PROGRAM_DATE_START_MONTH"))
 PROGRAM_DATE_END_MONTH = 12 #int(os.getenv("PROGRAM_DATE_END_MONTH")
-PROGRAM_DATE_START_DAY = 18 #int(os.getenv("PROGRAM_DATE_START_DAY"))
-PROGRAM_DATE_END_DAY = 10 #int(os.getenv("PROGRAM_DATE_END_DAY"))
+PROGRAM_DATE_START_DAY = 1 #int(os.getenv("PROGRAM_DATE_START_DAY"))
+PROGRAM_DATE_END_DAY = 30 #int(os.getenv("PROGRAM_DATE_END_DAY"))
 
 BATCH_START = datetime.datetime(PROGRAM_DATE_START_YEAR, PROGRAM_DATE_START_MONTH, PROGRAM_DATE_START_DAY)
 BATCH_END = datetime.datetime(PROGRAM_DATE_END_YEAR, PROGRAM_DATE_END_MONTH, PROGRAM_DATE_END_DAY)
@@ -51,9 +51,14 @@ def collect_data():
         print(f"Fetching data for: {fellow} - {fellows[fellow]['project']}")
 
         if fellows[fellow]['project'] not in projects:
+            print(f"No Project Match for {fellow}. Skipping")
             continue
-        
         fellow_projects = projects[fellows[fellow]['project']]
+
+        if len(fellow_projects['urls']) < 1:
+            print(f"No URLs for {fellows[fellow]['project']}. Skipping")
+            continue
+
         
         print("Getting PRs/Issues")
         issues_response = make_gh_request(ISSUES_URL, fellows[fellow]['github_username'])
@@ -67,7 +72,7 @@ def collect_data():
             for commit in commits:
                 print(f"Adding {commit['sha']} to db")
                 helpers.add_to_db(email=fellow, github_id=fellows[fellow]['github_userid'], github_username=fellows[fellow]['github_username'], 
-                                  project=fellows[fellow]['project'], id=commit['sha'], url=f"{url}/commit/{commit['sha']}", type="Commit", message=commit['message'], number="Null", 
+                                  project=fellows[fellow]['project'], id=commit['sha'], url=f"{url}/commit/{commit['sha']}", activity_type="Commit", message=commit['message'], number="Null", 
                                   created_at=commit['date'], additions=commit['additions'], deletions=commit['deletions'], files_changed=commit['files_changed'])
 
         for url in fellow_projects['urls']:
@@ -87,7 +92,7 @@ def collect_data():
                 if issue_response:
                     find_gl_issues(issue_response, fellow)
 
-        time.sleep(5) # Limited to 30 requests a minute / 1 request every 2 seconds.
+        time.sleep(10) # Limited to 30 requests a minute / 1 request every 2 seconds.
 
 
 def make_gh_request(request_type, user, org=None, project=None):
@@ -120,35 +125,39 @@ def make_gl_request(request_type, user, project_id):
 
 
 def find_issues_prs(response, projects, fellow):
-    if "items" not in response:
-        pprint(response)
-    for item in response["items"]:
-        url = '/'.join(item['html_url'].split('/')[:5]).lower()
-        
-        # Check dates are within Batch Dates
-        if datetime.datetime.strptime(item['created_at'], GITHUB_DATE_FORMAT) >= BATCH_START and datetime.datetime.strptime(item['created_at'], GITHUB_DATE_FORMAT) <= BATCH_END:
-            # Check PR is in the project
-            if url in projects and "pull_request" in item:
-                helpers.add_to_db(email=fellow, github_id=fellows[fellow]['github_userid'], github_username=fellows[fellow]['github_username'],
-                                  project=fellows[fellow]['project'], id=item['id'], url=item['html_url'], type="Pull Request", message=item['title'], 
-                                  number=item['number'], created_at=item['created_at'], closed_at=item['closed_at'], merged_at=item['pull_request']['merged_at'])
-                
-            # Check Issue is in the project
-            elif url in projects and "pull_request" not in item:
-                helpers.add_to_db(email=fellow, github_id=fellows[fellow]['github_userid'], github_username=fellows[fellow]['github_username'],
-                                  project=fellows[fellow]['project'], id=item['id'], url=item['html_url'], type="Issue", message=item['title'], 
-                                  number=item['number'], created_at=item['created_at'], closed_at=item['closed_at'])
+    if "items" in response:
+        print(f"Total PRs/Issues: {len(response['items'])}")
+        for item in response['items']:
+            url = '/'.join(item['html_url'].split('/')[:5]).lower()
+            
+            # Check dates are within Batch Dates
+            if datetime.datetime.strptime(item['created_at'], GITHUB_DATE_FORMAT) >= BATCH_START and datetime.datetime.strptime(item['created_at'], GITHUB_DATE_FORMAT) <= BATCH_END:
+                # Check PR is in the project
+                if url in projects and "pull_request" in item:
+                    helpers.add_to_db(email=fellow, github_id=fellows[fellow]['github_userid'], github_username=fellows[fellow]['github_username'],
+                                    project=fellows[fellow]['project'], id=item['id'], url=item['html_url'], activity_type="Pull Request", message=item['title'], 
+                                    number=item['number'], created_at=item['created_at'], closed_at=item['closed_at'], merged_at=item['pull_request']['merged_at'])
+                    
+                # Check Issue is in the project
+                elif url in projects and "pull_request" not in item:
+                    helpers.add_to_db(email=fellow, github_id=fellows[fellow]['github_userid'], github_username=fellows[fellow]['github_username'],
+                                    project=fellows[fellow]['project'], id=item['id'], url=item['html_url'], activity_type="Issue", message=item['title'], 
+                                    number=item['number'], created_at=item['created_at'], closed_at=item['closed_at'])
+    else:
+        print(response)
 
-# this needs to identify forks
 def find_commits(response, projects, fellow):
-    for item in response['items']:
-        url = item['repository']['html_url']
-        
-        if (datetime.datetime.strptime(item['commit']['author']['date'], GITHUB_COMMIT_DATE_FORMAT)).replace(tzinfo=utc) >= BATCH_START.replace(tzinfo=utc) and datetime.datetime.strptime(item['commit']['author']['date'], GITHUB_COMMIT_DATE_FORMAT).replace(tzinfo=utc) <= BATCH_END.replace(tzinfo=utc):
-            if url in projects:
-                helpers.add_to_db(email=fellow, github_id=fellows[fellow]['github_userid'], github_username=fellows[fellow]['github_username'], 
-                                  project=fellows[fellow]['project'], id=item['sha'], url=item['html_url'], type="Commit", message=item['commit']['message'], 
-                                  number="Null", created_at=item['commit']['author']['date'])
+    if "items" in response:
+        for item in response['items']:
+            url = item['repository']['html_url']
+            
+            if (datetime.datetime.strptime(item['commit']['author']['date'], GITHUB_COMMIT_DATE_FORMAT)).replace(tzinfo=utc) >= BATCH_START.replace(tzinfo=utc) and datetime.datetime.strptime(item['commit']['author']['date'], GITHUB_COMMIT_DATE_FORMAT).replace(tzinfo=utc) <= BATCH_END.replace(tzinfo=utc):
+                if url in projects:
+                    helpers.add_to_db(email=fellow, github_id=fellows[fellow]['github_userid'], github_username=fellows[fellow]['github_username'], 
+                                    project=fellows[fellow]['project'], id=item['sha'], url=item['html_url'], activity_type="Commit", message=item['commit']['message'], 
+                                    number="Null", created_at=item['commit']['author']['date'])
+    else:
+        print(response)
 
 def find_assigned_issues(response, fellow):
     if "errors" in response:
@@ -156,7 +165,7 @@ def find_assigned_issues(response, fellow):
     for issue in response:
         if datetime.datetime.strptime(issue['created_at'], GITHUB_DATE_FORMAT) >= BATCH_START and datetime.datetime.strptime(issue['created_at'], GITHUB_DATE_FORMAT) <= BATCH_END:
             helpers.add_to_db(email=fellow, github_id=fellows[fellow]['github_userid'], github_username=fellows[fellow]['github_username'], 
-                              project=fellows[fellow]['project'], id=issue['id'], url=issue['html_url'], type="Issue", message=issue['title'], 
+                              project=fellows[fellow]['project'], id=issue['id'], url=issue['html_url'], activity_type="Issue", message=issue['title'], 
                               number=issue['number'], created_at=issue['created_at'], closed_at=issue['closed_at'])
 
 def get_pr_changed_lines(url, row):
@@ -174,7 +183,7 @@ def find_merge_requests(response, fellow):
     for mr in response:
         if datetime.datetime.strptime(mr['created_at'], GITLAB_DATE_FORMAT) >= BATCH_START and datetime.datetime.strptime(mr['created_at'], GITLAB_DATE_FORMAT) <= BATCH_END:
             helpers.add_to_db(email=fellow, github_id=fellows[fellow]['github_userid'], github_username=fellows[fellow]['gitlab_username'], 
-                              project=fellows[fellow]['project'], id=mr['iid'], url=mr['web_url'], type="Pull Request", message=mr['title'], 
+                              project=fellows[fellow]['project'], id=mr['iid'], url=mr['web_url'], activity_type="Pull Request", message=mr['title'], 
                               number=mr['iid'], created_at=mr['created_at'], closed_at=mr['closed_at'], merged_at=mr['merged_at'])
 
 
@@ -183,7 +192,7 @@ def find_gl_issues(response, fellow):
         if datetime.datetime.strptime(issue['created_at'], GITLAB_DATE_FORMAT) >= BATCH_START and datetime.datetime.strptime(issue['created_at'], GITLAB_DATE_FORMAT) <= BATCH_END:
             helpers.add_to_db(email=fellow, github_id=fellows[fellow]['github_userid'], 
                               github_username=fellows[fellow]['gitlab_username'], project=fellows[fellow]['project'], 
-                              id=issue['iid'], url=issue['web_url'], type="Issue", message=issue['title'], number=issue['iid'],
+                              id=issue['iid'], url=issue['web_url'], activity_type="Issue", message=issue['title'], number=issue['iid'],
                               created_at=issue['created_at'], closed_at=issue['closed_at'])
 
 def find_gl_commits(response, fellow):

@@ -2,6 +2,8 @@ import os
 import time
 import requests
 import gspread
+from datetime import datetime
+from pytz import timezone
 from oauth2client.service_account import ServiceAccountCredentials
 
 scope = ['https://www.googleapis.com/auth/spreadsheets',
@@ -45,7 +47,7 @@ def get_projects(term):
     return projects
 
 def add_to_db(email, github_id, github_username, project, id, 
-              url, type, message, number, created_at, closed_at="Null", 
+              url, activity_type, message, number, created_at, closed_at="Null", 
               merged_at="Null", additions="Null", deletions="Null", files_changed="Null"):
     activities_data_sh = sheet.worksheet("activities_data")
     if check_no_duplicates(url, id, closed_at, merged_at):
@@ -56,12 +58,12 @@ def add_to_db(email, github_id, github_username, project, id,
                                        project,
                                        id,
                                        url,
-                                       type,
+                                       activity_type,
                                        message,
                                        number,
-                                       created_at,
-                                       closed_at,
-                                       merged_at,
+                                       standardize_datetime(created_at, activity_type),
+                                       standardize_datetime(closed_at, activity_type),
+                                       standardize_datetime(merged_at, activity_type),
                                        additions,
                                        deletions,
                                        files_changed])
@@ -94,3 +96,13 @@ def get_pr_changed_lines(url, row):
             activities_data_sh.update_acell(f"M{row + 2}", pull_response['additions'])
             activities_data_sh.update_acell(f"N{row + 2}", pull_response['deletions'])
             activities_data_sh.update_acell(f"O{row + 2}", pull_response['changed_files'])
+
+def standardize_datetime(raw_datetime, actitivty_type):
+    pr_format = "%Y-%m-%dT%H:%M:%S%z"
+    commit_format = "%a %b %d %H:%M:%S %Y %z"
+
+    if (actitivty_type == "Pull Request" or actitivty_type == "Issue") and raw_datetime != None and raw_datetime != "Null":
+        return str(datetime.strptime(raw_datetime, pr_format))
+    if actitivty_type == "Commit" and raw_datetime != None and raw_datetime != "Null":
+        return str(datetime.strptime(raw_datetime, commit_format))
+    return raw_datetime
