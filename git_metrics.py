@@ -35,8 +35,8 @@ COMMITS_URL = "commits?q=author:"
 ISSUES_URL = "issues?q=author:"
 ISSUE_URL = "issues?assignee"
 
-PROGRAM_DATE_START_YEAR = 2021 #int(os.getenv("PROGRAM_DATE_YEAR"))
-PROGRAM_DATE_END_YEAR = 2021 #int(os.getenv("PROGRAM_DATE_YEAR"))
+PROGRAM_DATE_START_YEAR = 2023 #int(os.getenv("PROGRAM_DATE_YEAR"))
+PROGRAM_DATE_END_YEAR = 2023 #int(os.getenv("PROGRAM_DATE_YEAR"))
 PROGRAM_DATE_START_MONTH = 9 #int(os.getenv("PROGRAM_DATE_START_MONTH"))
 PROGRAM_DATE_END_MONTH = 12 #int(os.getenv("PROGRAM_DATE_END_MONTH")
 PROGRAM_DATE_START_DAY = 1 #int(os.getenv("PROGRAM_DATE_START_DAY"))
@@ -213,14 +213,14 @@ def find_gl_commits(response, fellow):
 
 
 if __name__ == "__main__":
-    term = "21.FAL"
+    term = "23.FAL.A"
     fellows = helpers.get_fellows(term)
     projects = helpers.get_projects(term)
     collect_data()
-    #fellows.clear()
-    #projects.clear()
-    #term = "23.FAL.B"
-    #fellows = helpers.get_fellows(term)
-    #projects = helpers.get_projects(term)
-    #collect_data()
+    fellows.clear()
+    projects.clear()
+    term = "23.FAL.B"
+    fellows = helpers.get_fellows(term)
+    projects = helpers.get_projects(term)
+    collect_data()
     print(f"{term} Completed")
