@@ -65,10 +65,10 @@ def collect_data():
 
         
         print("Getting PRs/Issues")
-        #issues_response = make_gh_request(ISSUES_URL, fellows[fellow]['github_username'])
-        #if issues_response != None and "items" in issues_response:
-        #    find_issues_prs(issues_response, fellow_projects['urls'], fellow)
-        #time.sleep(5)
+        issues_response = make_gh_request(ISSUES_URL, fellows[fellow]['github_username'])
+        if issues_response != None and "items" in issues_response:
+            find_issues_prs(issues_response, fellow_projects['urls'], fellow)
+        time.sleep(5)
 
         print("Getting commits")
         for url in fellow_projects['urls']:
