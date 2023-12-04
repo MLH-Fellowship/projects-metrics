@@ -78,9 +78,11 @@ def check_no_duplicates(url, id, closed_date="Null", merged_date="Null"):
     for row, item in enumerate(values):
         if len(item) > 0 and str(item[0].strip()) == str(id):
             if closed_date != "Null" and closed_date != None:
-                activities_data_sh.update_acell(f"K{row + 2}", closed_date)                
+                date = standardize_datetime(closed_date, "Pull Request")
+                activities_data_sh.update_acell(f"K{row + 2}", date)                
             if merged_date != "Null" and merged_date != None:
-                activities_data_sh.update_acell(f"L{row + 2}", merged_date)
+                date = standardize_datetime(merged_date, "Pull Request")
+                activities_data_sh.update_acell(f"L{row + 2}", date)
                 get_pr_changed_lines(url, row)
             return False
     return True

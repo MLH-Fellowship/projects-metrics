@@ -15,7 +15,6 @@ load_dotenv()
 fellows = {}
 projects = {}
 
-
 utc = pytz.utc
 
 # Connect to Google Sheets
