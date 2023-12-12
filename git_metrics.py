@@ -34,15 +34,53 @@ COMMITS_URL = "commits?q=author:"
 ISSUES_URL = "issues?q=author:"
 ISSUE_URL = "issues?assignee"
 
-PROGRAM_DATE_START_YEAR = 2023 #int(os.getenv("PROGRAM_DATE_YEAR"))
-PROGRAM_DATE_END_YEAR = 2023 #int(os.getenv("PROGRAM_DATE_YEAR"))
-PROGRAM_DATE_START_MONTH = 9 #int(os.getenv("PROGRAM_DATE_START_MONTH"))
-PROGRAM_DATE_END_MONTH = 12 #int(os.getenv("PROGRAM_DATE_END_MONTH")
-PROGRAM_DATE_START_DAY = 1 #int(os.getenv("PROGRAM_DATE_START_DAY"))
-PROGRAM_DATE_END_DAY = 30 #int(os.getenv("PROGRAM_DATE_END_DAY"))
 
-BATCH_START = datetime.datetime(PROGRAM_DATE_START_YEAR, PROGRAM_DATE_START_MONTH, PROGRAM_DATE_START_DAY)
-BATCH_END = datetime.datetime(PROGRAM_DATE_END_YEAR, PROGRAM_DATE_END_MONTH, PROGRAM_DATE_END_DAY)
+program_date_format = "%Y-%m-%d"
+
+def get_terms():
+    dates_sh = sheet.worksheet('Fellowship Terms')
+
+    terms = []
+    for row in dates_sh.get_all_records():
+        now = datetime.datetime.now()
+
+        if datetime.datetime.strptime(str(row['Start_Date__c']).strip(), program_date_format) < now and datetime.datetime.strptime(str(row['End_Date__c']).strip(), program_date_format) > now:
+            terms.append(str(row['Dot_Notation__c']).strip())
+    return terms
+
+def setup_dates(term):
+    dates_sh = sheet.worksheet('Fellowship Terms')
+
+    for row in dates_sh.get_all_records():
+
+        if str(row['Dot_Notation__c']).strip() == term:
+            start_date = str(row['Start_Date__c']).split('-')
+            end_date = str(row['End_Date__c']).split('-')
+            
+            global program_date_start_year
+            global program_date_end_year
+            global program_date_start_month
+            global program_date_end_month
+            global program_date_start_day
+            global program_date_end_day
+            global batch_start
+            global batch_end
+            
+            program_date_start_year = int(start_date[0])
+            program_date_end_year = int(end_date[0])
+            program_date_start_month = int(start_date[1])
+            program_date_end_month = int(end_date[1])
+            program_date_start_day = int(start_date[2])
+            program_date_end_day = int(end_date[2])
+
+            batch_start = datetime.datetime(program_date_start_year, program_date_start_month, program_date_start_day)
+            batch_end = datetime.datetime(program_date_end_year, program_date_end_month, program_date_end_day)
+            return True
+    return False
+            
+
+
+
 GITHUB_DATE_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 GITHUB_COMMIT_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f%z"
 CLI_COMMIT_DATE_FORMAT = "%a %b %d %H:%M:%S %Y %z"
@@ -74,7 +112,7 @@ def collect_data():
             commits = cli.collect_commits(url, fellow)
             for commit in commits:
                 local_date = datetime.datetime.strptime(commit['date'], CLI_COMMIT_DATE_FORMAT).replace(tzinfo=utc)
-                if local_date > BATCH_START.replace(tzinfo=utc) and local_date < BATCH_END.replace(tzinfo=utc):
+                if local_date > batch_start.replace(tzinfo=utc) and local_date < batch_end.replace(tzinfo=utc):
                     print(f"Adding {commit['sha']} to db")
                     helpers.add_to_db(email=fellow, github_id=fellows[fellow]['github_userid'], github_username=fellows[fellow]['github_username'], 
                                     project=fellows[fellow]['project'], id=commit['sha'], url=f"{url}/commit/{commit['sha']}", activity_type="Commit", message=commit['message'], number="Null", 
@@ -104,9 +142,9 @@ def make_gh_request(request_type, user, org=None, project=None):
     r = None
     try:
         if request_type == ISSUES_URL:
-            r = requests.get(f"{BASE_URL}/search/{request_type}{user} created:<{PROGRAM_DATE_END_YEAR}-{'{:0>{}}'.format(PROGRAM_DATE_END_MONTH, 2)}-{'{:0>{}}'.format(PROGRAM_DATE_END_DAY, 2)}&per_page=100", auth=(os.getenv("GITHUB_USERNAME"), os.getenv("GITHUB_ACCESS_TOKEN")))
+            r = requests.get(f"{BASE_URL}/search/{request_type}{user} created:<{program_date_end_year}-{'{:0>{}}'.format(program_date_end_month, 2)}-{'{:0>{}}'.format(program_date_end_day, 2)}&per_page=100", auth=(os.getenv("GITHUB_USERNAME"), os.getenv("GITHUB_ACCESS_TOKEN")))
         elif request_type == COMMITS_URL:
-            r = requests.get(f"{BASE_URL}/search/{request_type}{user}created:<{PROGRAM_DATE_END_YEAR}-{'{:0>{}}'.format(PROGRAM_DATE_END_MONTH, 2)}-{'{:0>{}}'.format(PROGRAM_DATE_END_DAY, 2)}&per_page=100&&sort=author-date", auth=(os.getenv("GITHUB_USERNAME"), os.getenv("GITHUB_ACCESS_TOKEN")))
+            r = requests.get(f"{BASE_URL}/search/{request_type}{user}created:<{program_date_end_year}-{'{:0>{}}'.format(program_date_end_month, 2)}-{'{:0>{}}'.format(program_date_end_day, 2)}&per_page=100&&sort=author-date", auth=(os.getenv("GITHUB_USERNAME"), os.getenv("GITHUB_ACCESS_TOKEN")))
         elif request_type == ISSUE_URL:
             r = requests.get(f"{BASE_URL}/repos/{org}/{project}/{ISSUE_URL}={user}", auth=(os.getenv("GITHUB_USERNAME"), os.getenv("GITHUB_ACCESS_TOKEN")))
         return r.json()  
@@ -137,7 +175,7 @@ def find_issues_prs(response, projects, fellow):
             
             # Check dates are within Batch Dates
             local_date = datetime.datetime.strptime(item['created_at'], GITHUB_DATE_FORMAT)
-            if local_date >= BATCH_START and local_date <= BATCH_END:
+            if local_date >= batch_start and local_date <= batch_end:
                 # Check PR is in the project
                 if url in projects and "pull_request" in item:
                     helpers.add_to_db(email=fellow, github_id=fellows[fellow]['github_userid'], github_username=fellows[fellow]['github_username'],
@@ -158,7 +196,7 @@ def find_commits(response, projects, fellow):
             url = item['repository']['html_url']
             
             local_date = (datetime.datetime.strptime(item['commit']['author']['date'], GITHUB_COMMIT_DATE_FORMAT)).replace(tzinfo=utc)
-            if local_date >= BATCH_START.replace(tzinfo=utc) and local_date <= BATCH_END.replace(tzinfo=utc):
+            if local_date >= batch_start.replace(tzinfo=utc) and local_date <= batch_end.replace(tzinfo=utc):
                 if url in projects:
                     helpers.add_to_db(email=fellow, github_id=fellows[fellow]['github_userid'], github_username=fellows[fellow]['github_username'], 
                                     project=fellows[fellow]['project'], id=item['sha'], url=item['html_url'], activity_type="Commit", message=item['commit']['message'], 
@@ -171,7 +209,7 @@ def find_assigned_issues(response, fellow):
         return
     for issue in response:
         local_date = datetime.datetime.strptime(issue['created_at'], GITHUB_DATE_FORMAT)
-        if local_date >= BATCH_START and local_date <= BATCH_END:
+        if local_date >= batch_start and local_date <= batch_end:
             helpers.add_to_db(email=fellow, github_id=fellows[fellow]['github_userid'], github_username=fellows[fellow]['github_username'], 
                               project=fellows[fellow]['project'], id=issue['id'], url=issue['html_url'], activity_type="Issue", message=issue['title'], 
                               number=issue['number'], created_at=issue['created_at'], closed_at=issue['closed_at'])
@@ -190,7 +228,7 @@ def get_pr_changed_lines(url, row):
 def find_merge_requests(response, fellow):
     for mr in response:
         local_date = datetime.datetime.strptime(mr['created_at'], GITLAB_DATE_FORMAT)
-        if local_date >= BATCH_START and local_date <= BATCH_END:
+        if local_date >= batch_start and local_date <= batch_end:
             helpers.add_to_db(email=fellow, github_id=fellows[fellow]['github_userid'], github_username=fellows[fellow]['gitlab_username'], 
                               project=fellows[fellow]['project'], id=mr['iid'], url=mr['web_url'], activity_type="Pull Request", message=mr['title'], 
                               number=mr['iid'], created_at=mr['created_at'], closed_at=mr['closed_at'], merged_at=mr['merged_at'])
@@ -199,7 +237,7 @@ def find_merge_requests(response, fellow):
 def find_gl_issues(response, fellow):
     for issue in response:
         local_date = datetime.datetime.strptime(issue['created_at'], GITLAB_DATE_FORMAT)
-        if local_date >= BATCH_START and local_date <= BATCH_END:
+        if local_date >= batch_start and local_date <= batch_end:
             helpers.add_to_db(email=fellow, github_id=fellows[fellow]['github_userid'], 
                               github_username=fellows[fellow]['gitlab_username'], project=fellows[fellow]['project'], 
                               id=issue['iid'], url=issue['web_url'], activity_type="Issue", message=issue['title'], number=issue['iid'],
@@ -207,19 +245,20 @@ def find_gl_issues(response, fellow):
 
 def find_gl_commits(response, fellow):
     for commit in response:
-         if datetime.datetime.strptime(commit['created_at'], GITLAB_DATE_FORMAT) >= BATCH_START and datetime.datetime.strptime(commit['created_at'], GITLAB_DATE_FORMAT) <= BATCH_END:
+         if datetime.datetime.strptime(commit['created_at'], GITLAB_DATE_FORMAT) >= batch_start and datetime.datetime.strptime(commit['created_at'], GITLAB_DATE_FORMAT) <= batch_end:
              pass
 
 
 if __name__ == "__main__":
-    term = "23.FAL.A"
-    fellows = helpers.get_fellows(term)
-    projects = helpers.get_projects(term)
-    collect_data()
-    fellows.clear()
-    projects.clear()
-    term = "23.FAL.B"
-    fellows = helpers.get_fellows(term)
-    projects = helpers.get_projects(term)
-    collect_data()
-    print(f"{term} Completed")
+    terms = get_terms()
+    print(f"Collecting data for {str(terms)}")
+    for term in terms:
+        fellows.clear()
+        projects.clear()
+        if setup_dates(term):
+            fellows = helpers.get_fellows(term)
+            projects = helpers.get_projects(term)
+            collect_data()
+            print(f"{term} Completed")
+        else:
+            print(f"Error with dates in Salesforce for {term}")

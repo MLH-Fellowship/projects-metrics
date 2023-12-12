@@ -20,7 +20,7 @@ sheet = client.open_by_url(
     "https://docs.google.com/spreadsheets/d/12quNi2TYuRK40woals-ABPT5NcsmhBmC_dHNU9rX1Do")
 
 activities_data_sh = sheet.worksheet("activities_data")
-values = activities_data_sh.get("L2:L")
+values = activities_data_sh.get("K2:K")
 counter = 0
 for row, item in enumerate(values):
     if len(item) == 0:
@@ -48,7 +48,7 @@ for row, item in enumerate(values):
     elif len(chunks) == 6:
         new_date = str(datetime.strptime(date, commit_format).astimezone(timezone('GMT')))
 
-    activities_data_sh.update_acell(f"L{row + 2}", new_date)
+    activities_data_sh.update_acell(f"K{row + 2}", new_date)
     print(f"After (Row: {row + 2}): {new_date}")
     counter += 1
     if counter == 50:
