@@ -44,7 +44,7 @@ def get_terms():
     for row in dates_sh.get_all_records():
         now = datetime.datetime.now()
 
-        if datetime.datetime.strptime(str(row['Start_Date__c']).strip(), program_date_format) < now and datetime.datetime.strptime(str(row['End_Date__c']).strip(), program_date_format) > now:
+        if datetime.datetime.strptime(str(row['Start_Date__c']).strip(), program_date_format) <= now and datetime.datetime.strptime(str(row['End_Date__c']).strip(), program_date_format) >= now:
             terms.append(str(row['Dot_Notation__c']).strip())
     return terms
 
@@ -65,7 +65,7 @@ def setup_dates(term):
             global program_date_end_day
             global batch_start
             global batch_end
-            
+
             program_date_start_year = int(start_date[0])
             program_date_end_year = int(end_date[0])
             program_date_start_month = int(start_date[1])
