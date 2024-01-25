@@ -13,6 +13,20 @@ credentials = ServiceAccountCredentials.from_json_keyfile_name("gs_credentials.j
 client = gspread.authorize(credentials)
 sheet = client.open_by_url("https://docs.google.com/spreadsheets/d/12quNi2TYuRK40woals-ABPT5NcsmhBmC_dHNU9rX1Do")
 
+program_date_format = "%Y-%m-%d"
+
+
+def get_terms():
+    dates_sh = sheet.worksheet('Fellowship Terms')
+
+    terms = []
+    for row in dates_sh.get_all_records():
+        now = datetime.datetime.now()
+
+        if datetime.datetime.strptime(str(row['Start_Date__c']).strip(), program_date_format) <= now and datetime.datetime.strptime(str(row['End_Date__c']).strip(), program_date_format) >= now:
+            terms.append(str(row['Dot_Notation__c']).strip())
+    return terms
+
 def get_fellows(term):
     fellows = {}
     fellows_sh = sheet.worksheet("Enrolled Fellows")

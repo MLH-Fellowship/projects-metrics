@@ -6,6 +6,7 @@ import datetime
 import pytz
 import os
 import helpers
+import orientation_data
 import gspread
 import cli
 from oauth2client.service_account import ServiceAccountCredentials
@@ -33,20 +34,6 @@ BASE_URL = "https://api.github.com"
 COMMITS_URL = "commits?q=author:"
 ISSUES_URL = "issues?q=author:"
 ISSUE_URL = "issues?assignee"
-
-
-program_date_format = "%Y-%m-%d"
-
-def get_terms():
-    dates_sh = sheet.worksheet('Fellowship Terms')
-
-    terms = []
-    for row in dates_sh.get_all_records():
-        now = datetime.datetime.now()
-
-        if datetime.datetime.strptime(str(row['Start_Date__c']).strip(), program_date_format) <= now and datetime.datetime.strptime(str(row['End_Date__c']).strip(), program_date_format) >= now:
-            terms.append(str(row['Dot_Notation__c']).strip())
-    return terms
 
 def setup_dates(term):
     dates_sh = sheet.worksheet('Fellowship Terms')
@@ -250,7 +237,7 @@ def find_gl_commits(response, fellow):
 
 
 if __name__ == "__main__":
-    terms = get_terms()
+    terms = helpers.get_terms()
     print(f"Collecting data for {str(terms)}")
     for term in terms:
         fellows.clear()
@@ -260,5 +247,10 @@ if __name__ == "__main__":
             projects = helpers.get_projects(term)
             collect_data()
             print(f"{term} Completed")
+            time.sleep(30)
+            if datetime.datetime.now() < batch_start.timedelta(days=21):
+                print(f"Collecting Orientation Data for {term}")
+                orientation_data.collect_data(term)
+                print(f"Orientation Data completed for {term}")
         else:
             print(f"Error with dates in Salesforce for {term}")

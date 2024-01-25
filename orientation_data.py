@@ -156,9 +156,7 @@ def get_pr_changed_lines(url, row):
             orientation_data.update_acell(f"N{row + 2}", pull_response['deletions'])
             orientation_data.update_acell(f"O{row + 2}", pull_response['changed_files'])
 
-if __name__ == "__main__":
-    term = "23.FAL.B"
+def collect_data(term):
     fellows = helpers.get_fellows(term)
     get_orientation_projects(term)
     collect_orientation_data()
-    print(f"Orientation Data Completed for {term}")
