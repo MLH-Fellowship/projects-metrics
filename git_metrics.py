@@ -248,7 +248,8 @@ if __name__ == "__main__":
             collect_data()
             print(f"{term} Completed")
             time.sleep(30)
-            if datetime.datetime.now() < batch_start.timedelta(days=21):
+            now = datetime.datetime.now()
+            if now < now + datetime.timedelta(days=21):
                 print(f"Collecting Orientation Data for {term}")
                 orientation_data.collect_data(term)
                 print(f"Orientation Data completed for {term}")

@@ -2,7 +2,7 @@ import os
 import time
 import requests
 import gspread
-from datetime import datetime
+import datetime
 from pytz import timezone
 from oauth2client.service_account import ServiceAccountCredentials
 
@@ -118,8 +118,8 @@ def standardize_datetime(raw_datetime, actitivty_type):
     commit_format = "%a %b %d %H:%M:%S %Y %z"
 
     if (actitivty_type == "Pull Request" or actitivty_type == "Issue") and raw_datetime != None and raw_datetime != "Null":
-        return str(datetime.strptime(raw_datetime, pr_format))
+        return str(datetime.datetime.strptime(raw_datetime, pr_format))
     if actitivty_type == "Commit" and raw_datetime != None and raw_datetime != "Null":
-        commit_date = datetime.strptime(raw_datetime, commit_format)
+        commit_date = datetime.datetime.strptime(raw_datetime, commit_format)
         return str(commit_date.astimezone(timezone('GMT')))
     return raw_datetime
