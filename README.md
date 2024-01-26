@@ -10,7 +10,7 @@ Python scripts to automatically pull Git data from GitHub and GitLab about Fello
 - Duplicates are checked against IDs. IDs can be commit shas, or unique IDs set by GitHub and GitLab. GitHub UIDs are not accessible on the website, only via the API so doesn't work for private repositories.
 
 ### `git_metrics.py`
-Collects everything for fellows and projects during a specific fellowship batch
+Collects everything for fellows and projects during a specific fellowship batch and also starts the Orientation Data process. 
 
 ### `orientation_data.py`
 Collects everything for fellows on their Orientation Project in Week 1 and 2 during a specific fellowship batch
@@ -27,7 +27,7 @@ Tasks that both `git_metrics.py` and `orientation_data.py` need are centralized 
 
 ## Setup 
 
-Ensure Project Repos are in this [sheet](https://docs.google.com/spreadsheets/d/12quNi2TYuRK40woals-ABPT5NcsmhBmC_dHNU9rX1Do/edit#gid=0)
+Ensure Project Repos and Term dates are in this [sheet](https://docs.google.com/spreadsheets/d/12quNi2TYuRK40woals-ABPT5NcsmhBmC_dHNU9rX1Do/edit#gid=0)
 
 ### Cron setup
 
@@ -35,8 +35,8 @@ Ensure Project Repos are in this [sheet](https://docs.google.com/spreadsheets/d/
 crontab -e
 ```
 
-Run daily at 8am GMT
+Run every 4 hours
 ```
-0 8 * * * ./gs_daily.sh
+0 */4 * * * /bin/bash -c "/root/projects-metrics/gs_daily.sh"
 ```
 
