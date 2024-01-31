@@ -18,6 +18,14 @@ projects = {}
 
 utc = pytz.utc
 
+# Placeholder values
+program_date_start_year = 3000
+program_date_end_year = 3000
+program_date_start_month = 1
+program_date_end_month = 12
+program_date_start_day = 1
+program_date_end_day = 20
+
 # Connect to Google Sheets
 scope = ['https://www.googleapis.com/auth/spreadsheets',
          "https://www.googleapis.com/auth/drive"]
@@ -65,9 +73,6 @@ def setup_dates(term):
             return True
     return False
             
-
-
-
 GITHUB_DATE_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
 GITHUB_COMMIT_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f%z"
 CLI_COMMIT_DATE_FORMAT = "%a %b %d %H:%M:%S %Y %z"
@@ -242,16 +247,21 @@ if __name__ == "__main__":
     for term in terms:
         fellows.clear()
         projects.clear()
+
         if setup_dates(term):
             fellows = helpers.get_fellows(term)
             projects = helpers.get_projects(term)
             collect_data()
             print(f"{term} Completed")
-            time.sleep(30)
+            time.sleep(50)
             now = datetime.datetime.now()
+
             if now < now + datetime.timedelta(days=21):
                 print(f"Collecting Orientation Data for {term}")
-                orientation_data.collect_data(term)
+                projects.clear()
+                projects = orientation_data.get_orientation_projects(term)
+                orientation_data.collect_orientation_data(fellows, projects)
                 print(f"Orientation Data completed for {term}")
+
         else:
             print(f"Error with dates in Salesforce for {term}")
