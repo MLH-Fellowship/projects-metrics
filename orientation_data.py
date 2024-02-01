@@ -54,7 +54,7 @@ def collect_orientation_data(fellows, projects):
                                 
                     # Check PR is in the project
                     if url in projects[project]['urls'] and "pull_request" in item and check_no_duplicates(item['html_url'], item['id'], item['closed_at'], item['pull_request']['merged_at']): # if it's a PR
-                        
+                        print(f"Adding to db - {item['html_url']}")
                         orientation_data.append_row([fellow,
                                                         fellows[fellow]['term'],
                                                         fellows[fellow]['pod'],
@@ -69,7 +69,7 @@ def collect_orientation_data(fellows, projects):
                                                         helpers.standardize_datetime(item['pull_request']['merged_at'], "Pull Request")])
                     # Check Issue is in the project
                     elif url in projects[project]['urls'] and "pull_request" not in item and check_no_duplicates(item['html_url'], item['id'], item['closed_at']): #if it's an Issue
-                        
+                        print(f"Adding to db - {item['html_url']}")
                         orientation_data.append_row([fellow,
                                                         fellows[fellow]['term'],
                                                         fellows[fellow]['pod'],
@@ -90,6 +90,7 @@ def collect_orientation_data(fellows, projects):
                 commits = cli.collect_commits(url, fellow)
                 for commit in commits:
                     if check_no_duplicates(f"{url}/commit/{commit['sha']}", commit['sha']):
+                        print(f"Adding to db - {url}/commit/{commit['sha']}")
                         orientation_data.append_row([fellow,
                                                         fellows[fellow]['term'],
                                                         fellows[fellow]['pod'],
@@ -102,7 +103,9 @@ def collect_orientation_data(fellows, projects):
                                                         helpers.standardize_datetime(commit['date'], "Commit"),
                                                         "Null",
                                                         "Null"])
-                        time.sleep(5)
+                    else:
+                        print(f"Duplicate, skipping - {url}/commit/{commit['sha']}")
+                    time.sleep(5)
 
             # Issues
             for url in projects[project]['urls']:
@@ -113,6 +116,7 @@ def collect_orientation_data(fellows, projects):
                     
                     for issue in gh_issue_response:
                         if check_no_duplicates(issue['html_url'], issue['id'], issue['closed_at']):
+                            print(f"Adding to db - {issue['html_url']}")
                             orientation_data.append_row([fellow,
                                                             fellows[fellow]['term'],
                                                             fellows[fellow]['pod'],
@@ -125,6 +129,8 @@ def collect_orientation_data(fellows, projects):
                                                             helpers.standardize_datetime(issue['created_at'], "Issue"),
                                                             issue['closed_at'],
                                                             "Null"])
+                        else:
+                            print(f"Duplicate, skipping - {issue['html_url']}")
                     time.sleep(5)
             
 def check_no_duplicates(url, id, closed_date="Null", merged_date="Null"):

@@ -19,7 +19,7 @@ projects = {}
 utc = pytz.utc
 
 # Placeholder values
-program_date_start_year = 3000
+program_date_start_year = 2024
 program_date_end_year = 3000
 program_date_start_month = 1
 program_date_end_month = 12
@@ -134,9 +134,11 @@ def make_gh_request(request_type, user, org=None, project=None):
     r = None
     try:
         if request_type == ISSUES_URL:
-            r = requests.get(f"{BASE_URL}/search/{request_type}{user} created:<{program_date_end_year}-{'{:0>{}}'.format(program_date_end_month, 2)}-{'{:0>{}}'.format(program_date_end_day, 2)}&per_page=100", auth=(os.getenv("GITHUB_USERNAME"), os.getenv("GITHUB_ACCESS_TOKEN")))
+            r = requests.get(f"{BASE_URL}/search/{request_type}{user} created:{program_date_start_year}-{'{:0>{}}'.format(program_date_start_month, 2)}-{'{:0>{}}'.format(program_date_start_day, 2)}..{program_date_end_year}-{'{:0>{}}'.format(program_date_end_month, 2)}-{'{:0>{}}'.format(program_date_end_day, 2)}&per_page=100&&sort=created",
+                             auth=(os.getenv("GITHUB_USERNAME"), os.getenv("GITHUB_ACCESS_TOKEN")))
         elif request_type == COMMITS_URL:
-            r = requests.get(f"{BASE_URL}/search/{request_type}{user}created:<{program_date_end_year}-{'{:0>{}}'.format(program_date_end_month, 2)}-{'{:0>{}}'.format(program_date_end_day, 2)}&per_page=100&&sort=author-date", auth=(os.getenv("GITHUB_USERNAME"), os.getenv("GITHUB_ACCESS_TOKEN")))
+            r = requests.get(f"{BASE_URL}/search/{request_type}{user}created:{program_date_start_year}-{'{:0>{}}'.format(program_date_start_month, 2)}-{'{:0>{}}'.format(program_date_start_day, 2)}..{program_date_end_year}-{'{:0>{}}'.format(program_date_end_month, 2)}-{'{:0>{}}'.format(program_date_end_day, 2)}&per_page=100&&sort=author-date",
+                             auth=(os.getenv("GITHUB_USERNAME"), os.getenv("GITHUB_ACCESS_TOKEN")))
         elif request_type == ISSUE_URL:
             r = requests.get(f"{BASE_URL}/repos/{org}/{project}/{ISSUE_URL}={user}", auth=(os.getenv("GITHUB_USERNAME"), os.getenv("GITHUB_ACCESS_TOKEN")))
         return r.json()  
@@ -168,6 +170,7 @@ def find_issues_prs(response, projects, fellow):
             # Check dates are within Batch Dates
             local_date = datetime.datetime.strptime(item['created_at'], GITHUB_DATE_FORMAT)
             if local_date >= batch_start and local_date <= batch_end:
+                print(f"Date within range - proceeding with {url}")
                 # Check PR is in the project
                 if url in projects and "pull_request" in item:
                     helpers.add_to_db(email=fellow, github_id=fellows[fellow]['github_userid'], github_username=fellows[fellow]['github_username'],
@@ -179,6 +182,8 @@ def find_issues_prs(response, projects, fellow):
                     helpers.add_to_db(email=fellow, github_id=fellows[fellow]['github_userid'], github_username=fellows[fellow]['github_username'],
                                     project=fellows[fellow]['project'], id=item['id'], url=item['html_url'], activity_type="Issue", message=item['title'], 
                                     number=item['number'], created_at=item['created_at'], closed_at=item['closed_at'])
+            else:
+                print("Date not within batch")
     else:
         print(response)
 
