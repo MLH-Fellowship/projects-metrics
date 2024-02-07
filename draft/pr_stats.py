@@ -41,11 +41,11 @@ if __name__ == "__main__":
             repo_name = item[0].strip().split('/')[4]
             id = item[0].strip().split('/')[6]
             if item[1] == 'Pull Request':
-                pull_response = requests.get(f"https://api.github.com/repos/{org}/{repo_name}/pulls/{int(id)}", auth=(os.getenv("GITHUB_USERNAME"), os.getenv("GITHUB_ACCESS_TOKEN"))).json()
+                pull_response = requests.get(f"https://api.github.com/repos/{org}/{repo_name}/pulls/{int(id)}", auth=(os.getenv("GH_USERNAME"), os.getenv("GH_ACCESS_TOKEN"))).json()
                 if pull_response:
                     update_stats(pull_response['additions'], pull_response['deletions'], pull_response['changed_files'])
             elif item[1] == 'Commit':
-                commit_response = requests.get(f"https://api.github.com/repos/{org}/{repo_name}/commits/{id}", auth=(os.getenv("GITHUB_USERNAME"), os.getenv("GITHUB_ACCESS_TOKEN"))).json()
+                commit_response = requests.get(f"https://api.github.com/repos/{org}/{repo_name}/commits/{id}", auth=(os.getenv("GH_USERNAME"), os.getenv("GH_ACCESS_TOKEN"))).json()
                 if commit_response:
                     update_stats(commit_response['stats']['additions'], commit_response['stats']['deletions'], len(commit_response['files'])) 
             time.sleep(3)

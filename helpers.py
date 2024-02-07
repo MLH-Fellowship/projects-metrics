@@ -107,7 +107,7 @@ def get_pr_changed_lines(url, row):
         org = url.split('/')[3]
         repo_name = url.split('/')[4]
         pull_id = int(url.split('/')[6])
-        pull_response = requests.get(f"https://api.github.com/repos/{org}/{repo_name}/pulls/{pull_id}", auth=(os.getenv("GITHUB_USERNAME"), os.getenv("GITHUB_ACCESS_TOKEN"))).json()
+        pull_response = requests.get(f"https://api.github.com/repos/{org}/{repo_name}/pulls/{pull_id}", auth=(os.getenv("GH_USERNAME"), os.getenv("GH_ACCESS_TOKEN"))).json()
         if pull_response:
             activities_data_sh.update_acell(f"M{row + 2}", pull_response['additions'])
             activities_data_sh.update_acell(f"N{row + 2}", pull_response['deletions'])

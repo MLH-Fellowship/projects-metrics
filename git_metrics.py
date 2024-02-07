@@ -135,12 +135,12 @@ def make_gh_request(request_type, user, org=None, project=None):
     try:
         if request_type == ISSUES_URL:
             r = requests.get(f"{BASE_URL}/search/{request_type}{user} created:{program_date_start_year}-{'{:0>{}}'.format(program_date_start_month, 2)}-{'{:0>{}}'.format(program_date_start_day, 2)}..{program_date_end_year}-{'{:0>{}}'.format(program_date_end_month, 2)}-{'{:0>{}}'.format(program_date_end_day, 2)}&per_page=100&&sort=created",
-                             auth=(os.getenv("GITHUB_USERNAME"), os.getenv("GITHUB_ACCESS_TOKEN")))
+                             auth=(os.getenv("GH_USERNAME"), os.getenv("GH_ACCESS_TOKEN")))
         elif request_type == COMMITS_URL:
             r = requests.get(f"{BASE_URL}/search/{request_type}{user} created:{program_date_start_year}-{'{:0>{}}'.format(program_date_start_month, 2)}-{'{:0>{}}'.format(program_date_start_day, 2)}..{program_date_end_year}-{'{:0>{}}'.format(program_date_end_month, 2)}-{'{:0>{}}'.format(program_date_end_day, 2)}&per_page=100&&sort=author-date",
-                             auth=(os.getenv("GITHUB_USERNAME"), os.getenv("GITHUB_ACCESS_TOKEN")))
+                             auth=(os.getenv("GH_USERNAME"), os.getenv("GH_ACCESS_TOKEN")))
         elif request_type == ISSUE_URL:
-            r = requests.get(f"{BASE_URL}/repos/{org}/{project}/{ISSUE_URL}={user}", auth=(os.getenv("GITHUB_USERNAME"), os.getenv("GITHUB_ACCESS_TOKEN")))
+            r = requests.get(f"{BASE_URL}/repos/{org}/{project}/{ISSUE_URL}={user}", auth=(os.getenv("GH_USERNAME"), os.getenv("GH_ACCESS_TOKEN")))
         return r.json()  
     except:
         pprint(r.json())
@@ -150,11 +150,11 @@ def make_gl_request(request_type, user, project_id):
     r = None
     try:
         if request_type == "merge_request":
-            r = requests.get(f"https://gitlab.com/api/v4/projects/{project_id}/merge_requests?author_username={user}", headers={'PRIVATE-TOKEN': os.getenv("GITLAB_ACCESS_TOKEN")})
+            r = requests.get(f"https://gitlab.com/api/v4/projects/{project_id}/merge_requests?author_username={user}", headers={'PRIVATE-TOKEN': os.getenv("GL_ACCESS_TOKEN")})
         elif request_type == "issue":
-            r = requests.get(f"https://gitlab.com/api/v4/projects/{project_id}/issues?assignee_username={user}", headers={'PRIVATE-TOKEN': os.getenv("GITLAB_ACCESS_TOKEN")})
+            r = requests.get(f"https://gitlab.com/api/v4/projects/{project_id}/issues?assignee_username={user}", headers={'PRIVATE-TOKEN': os.getenv("GL_ACCESS_TOKEN")})
         elif request_type == "commit":
-            r = requests.get(f"https://gitlab.com/api/v4/projects/{project_id}/commits", headers={'PRIVATE-TOKEN': os.getenv("GITLAB_ACCESS_TOKEN")})
+            r = requests.get(f"https://gitlab.com/api/v4/projects/{project_id}/commits", headers={'PRIVATE-TOKEN': os.getenv("GL_ACCESS_TOKEN")})
         return r.json()
     except:
         pprint(r.json())
@@ -216,7 +216,7 @@ def get_pr_changed_lines(url, row):
         org = url.split('/')[3]
         repo_name = url.split('/')[4]
         pull_id = int(url.split('/')[6])
-        pull_response = requests.get(f"{BASE_URL}/repos/{org}/{repo_name}/pulls/{pull_id}", auth=(os.getenv("GITHUB_USERNAME"), os.getenv("GITHUB_ACCESS_TOKEN"))).json()
+        pull_response = requests.get(f"{BASE_URL}/repos/{org}/{repo_name}/pulls/{pull_id}", auth=(os.getenv("GH_USERNAME"), os.getenv("GH_ACCESS_TOKEN"))).json()
         if pull_response:
             activities_data_sh.update_acell(f"M{row + 2}", pull_response['additions'])
             activities_data_sh.update_acell(f"N{row + 2}", pull_response['deletions'])
