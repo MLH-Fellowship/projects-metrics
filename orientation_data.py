@@ -41,17 +41,15 @@ def get_orientation_projects(term):
     return projects
 
 def collect_orientation_data(fellows, projects):
-    for fellow in fellows:  
+    for fellow in fellows:
+        print(f"Fetching data for: {fellow}")  
         for project in projects:
         
             # PRs
             issues_response = git_metrics.make_gh_request(git_metrics.ISSUES_URL, fellows[fellow]['github_username'])
             if issues_response != None and "items" in issues_response:
-                if "items" not in issues_response:
-                    pprint(issues_response)
                 for item in issues_response["items"]:
                     url = '/'.join(item['html_url'].split('/')[:5])
-                                
                     # Check PR is in the project
                     if url in projects[project]['urls'] and "pull_request" in item and check_no_duplicates(item['html_url'], item['id'], item['closed_at'], item['pull_request']['merged_at']): # if it's a PR
                         print(f"Adding to db - {item['html_url']}")

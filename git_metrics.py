@@ -20,7 +20,7 @@ utc = pytz.utc
 
 # Placeholder values
 program_date_start_year = 2024
-program_date_end_year = 3000
+program_date_end_year = 2500
 program_date_start_month = 1
 program_date_end_month = 12
 program_date_start_day = 1
@@ -137,7 +137,7 @@ def make_gh_request(request_type, user, org=None, project=None):
             r = requests.get(f"{BASE_URL}/search/{request_type}{user} created:{program_date_start_year}-{'{:0>{}}'.format(program_date_start_month, 2)}-{'{:0>{}}'.format(program_date_start_day, 2)}..{program_date_end_year}-{'{:0>{}}'.format(program_date_end_month, 2)}-{'{:0>{}}'.format(program_date_end_day, 2)}&per_page=100&&sort=created",
                              auth=(os.getenv("GITHUB_USERNAME"), os.getenv("GITHUB_ACCESS_TOKEN")))
         elif request_type == COMMITS_URL:
-            r = requests.get(f"{BASE_URL}/search/{request_type}{user}created:{program_date_start_year}-{'{:0>{}}'.format(program_date_start_month, 2)}-{'{:0>{}}'.format(program_date_start_day, 2)}..{program_date_end_year}-{'{:0>{}}'.format(program_date_end_month, 2)}-{'{:0>{}}'.format(program_date_end_day, 2)}&per_page=100&&sort=author-date",
+            r = requests.get(f"{BASE_URL}/search/{request_type}{user} created:{program_date_start_year}-{'{:0>{}}'.format(program_date_start_month, 2)}-{'{:0>{}}'.format(program_date_start_day, 2)}..{program_date_end_year}-{'{:0>{}}'.format(program_date_end_month, 2)}-{'{:0>{}}'.format(program_date_end_day, 2)}&per_page=100&&sort=author-date",
                              auth=(os.getenv("GITHUB_USERNAME"), os.getenv("GITHUB_ACCESS_TOKEN")))
         elif request_type == ISSUE_URL:
             r = requests.get(f"{BASE_URL}/repos/{org}/{project}/{ISSUE_URL}={user}", auth=(os.getenv("GITHUB_USERNAME"), os.getenv("GITHUB_ACCESS_TOKEN")))
