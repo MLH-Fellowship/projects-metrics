@@ -2,6 +2,8 @@
 
 Python scripts to automatically pull Git data from GitHub and GitLab about Fellowship Projects and store them in a database.
 
+[![Collect Git Metrics](https://github.com/MLH-Fellowship/projects-metrics/actions/workflows/collect-data.yml/badge.svg?branch=main)](https://github.com/MLH-Fellowship/projects-metrics/actions/workflows/collect-data.yml)
+
 ## How Does It Work?
 
 - Pull Requests and Issues are pulled using the GitHub and GitLab APIs. The GitHub API is using the Search API to search for a users PRs and then filters by repository after the request. GitLab is able to make a request to the specific repository for just that users Merge Requests.
