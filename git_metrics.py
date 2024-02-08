@@ -168,22 +168,25 @@ def find_issues_prs(response, projects, fellow):
             url = '/'.join(item['html_url'].split('/')[:5]).lower()
             
             # Check dates are within Batch Dates
-            local_date = datetime.datetime.strptime(item['created_at'], GITHUB_DATE_FORMAT)
-            if local_date >= batch_start and local_date <= batch_end:
-                print(f"Date within range - proceeding with {url}")
-                # Check PR is in the project
-                if url in projects and "pull_request" in item:
-                    helpers.add_to_db(email=fellow, github_id=fellows[fellow]['github_userid'], github_username=fellows[fellow]['github_username'],
-                                    project=fellows[fellow]['project'], id=item['id'], url=item['html_url'], activity_type="Pull Request", message=item['title'], 
-                                    number=item['number'], created_at=item['created_at'], closed_at=item['closed_at'], merged_at=item['pull_request']['merged_at'])
+            if url in projects:
+                local_date = datetime.datetime.strptime(item['created_at'], GITHUB_DATE_FORMAT)
+
+                if local_date >= batch_start and local_date <= batch_end:
+                    print(f"Date within range - proceeding with {url}")
                     
-                # Check Issue is in the project
-                elif url in projects and "pull_request" not in item:
-                    helpers.add_to_db(email=fellow, github_id=fellows[fellow]['github_userid'], github_username=fellows[fellow]['github_username'],
-                                    project=fellows[fellow]['project'], id=item['id'], url=item['html_url'], activity_type="Issue", message=item['title'], 
-                                    number=item['number'], created_at=item['created_at'], closed_at=item['closed_at'])
-            else:
-                print("Date not within batch")
+                    # Check PR is in the project
+                    if "pull_request" in item:
+                        helpers.add_to_db(email=fellow, github_id=fellows[fellow]['github_userid'], github_username=fellows[fellow]['github_username'],
+                                        project=fellows[fellow]['project'], id=item['id'], url=item['html_url'], activity_type="Pull Request", message=item['title'], 
+                                        number=item['number'], created_at=item['created_at'], closed_at=item['closed_at'], merged_at=item['pull_request']['merged_at'])
+                        
+                    # Check Issue is in the project
+                    elif "pull_request" not in item:
+                        helpers.add_to_db(email=fellow, github_id=fellows[fellow]['github_userid'], github_username=fellows[fellow]['github_username'],
+                                        project=fellows[fellow]['project'], id=item['id'], url=item['html_url'], activity_type="Issue", message=item['title'], 
+                                        number=item['number'], created_at=item['created_at'], closed_at=item['closed_at'])
+                else:
+                    print("Date not within batch")
     else:
         print(response)
 

@@ -46,9 +46,9 @@ def collect_orientation_data(fellows, projects):
         for project in projects:
         
             # PRs
+            print("Collecting PRs and Issues....")
             issues_response = git_metrics.make_gh_request(git_metrics.ISSUES_URL, fellows[fellow]['github_username'])
             if issues_response != None and "items" in issues_response:
-                print("Collecting PRs and Issues....")
                 for item in issues_response["items"]:
                     url = '/'.join(item['html_url'].split('/')[:5])
                     # Check PR is in the project
@@ -81,8 +81,9 @@ def collect_orientation_data(fellows, projects):
                                                         helpers.standardize_datetime(item['created_at'], "Issue"),
                                                         helpers.standardize_datetime(item['closed_at'], "Issue"),
                                                         "Null"])
-
-                time.sleep(15)
+                time.sleep(10)
+            else:
+                print("No PRs/Issues fetched")
                 
             # Commits
             print("Collecting commits....")
@@ -146,8 +147,6 @@ def check_no_duplicates(url, id, closed_date="Null", merged_date="Null"):
                 date = helpers.standardize_datetime(merged_date, "Pull Request")
                 orientation_data.update_acell(f"L{row + 2}", date)
                 get_pr_changed_lines(url, row)
-            time.sleep(5)
-
             return False
     return True
 
