@@ -14,11 +14,19 @@ jobs:
       - name: Checkout repo content
         uses: actions/checkout@v2
         
-      - name: Run script
-        run: ./gs_daily.sh
+      - name: Create gs_credentials.json
+        run: echo -n ${{ secrets.GC_SA }} | base64 -d > gs_credentials.json
+
+      - name: Create virual environment
+        run: python3 -m venv .venv && source .venv/bin/activate
+
+      - name: Install requirements
+        run: pip install -r requirements.txt
+
+      - name: Run Python Script
+        run: python3 git_metrics.py
         env:
           GH_ACCESS_TOKEN: ${{ secrets.GH_ACCESS_TOKEN }}
           GH_USERNAME: ${{ secrets.GH_USERNAME }}
           GL_ACCESS_TOKEN: ${{ secrets.GL_ACCESS_TOKEN }}
-          GC_SA: ${{ secrets.GC_SA }}
           PYTHONBUFFERED: "1"

@@ -29,14 +29,6 @@ Tasks that both `git_metrics.py` and `orientation_data.py` need are centralized 
 
 Ensure Project Repos and Term dates are in this [sheet](https://docs.google.com/spreadsheets/d/12quNi2TYuRK40woals-ABPT5NcsmhBmC_dHNU9rX1Do/edit#gid=0)
 
-### Cron setup
+## Run
 
-```
-crontab -e
-```
-
-Run every 4 hours
-```
-0 */4 * * * /bin/bash -c "/root/projects-metrics/gs_daily.sh"
-```
-
+This can run as a GitHub Action automatically every 4 hours.
