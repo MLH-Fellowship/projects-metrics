@@ -48,6 +48,7 @@ def collect_orientation_data(fellows, projects):
             # PRs
             issues_response = git_metrics.make_gh_request(git_metrics.ISSUES_URL, fellows[fellow]['github_username'])
             if issues_response != None and "items" in issues_response:
+                print("Collecting PRs and Issues....")
                 for item in issues_response["items"]:
                     url = '/'.join(item['html_url'].split('/')[:5])
                     # Check PR is in the project
@@ -84,6 +85,7 @@ def collect_orientation_data(fellows, projects):
                 time.sleep(15)
                 
             # Commits
+            print("Collecting commits....")
             for url in projects[project]['urls']:
                 commits = cli.collect_commits(url, fellow)
                 for commit in commits:
@@ -103,9 +105,10 @@ def collect_orientation_data(fellows, projects):
                                                         "Null"])
                     else:
                         print(f"Duplicate, skipping - {url}/commit/{commit['sha']}")
-                    time.sleep(5)
+                time.sleep(5)
 
             # Issues
+            print("Collecting issues....")
             for url in projects[project]['urls']:
                 if "https://github" in url:
                     org = url.split('/')[3]
