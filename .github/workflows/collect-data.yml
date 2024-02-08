@@ -11,11 +11,11 @@ jobs:
     environment: production
 
     steps:
-      - name: checkout repo content
+      - name: Checkout repo content
         uses: actions/checkout@v2
         
-      - name: run script
-        run: /bin/bash -c "/root/projects-metrics/gs_daily.sh"
+      - name: Run script
+        run: ./root/projects-metrics/gs_daily.sh
         env:
           GH_ACCESS_TOKEN: ${{ secrets.GH_ACCESS_TOKEN }}
           GH_USERNAME: ${{ secrets.GH_USERNAME }}
