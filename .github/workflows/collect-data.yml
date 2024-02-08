@@ -15,7 +15,7 @@ jobs:
         uses: actions/checkout@v2
         
       - name: Run script
-        run: ./root/projects-metrics/gs_daily.sh
+        run: ./gs_daily.sh
         env:
           GH_ACCESS_TOKEN: ${{ secrets.GH_ACCESS_TOKEN }}
           GH_USERNAME: ${{ secrets.GH_USERNAME }}
