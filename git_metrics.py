@@ -81,10 +81,10 @@ utc = pytz.utc
 
 def collect_data():
     for fellow in fellows:
-        print(f"Fetching data for: {fellow} - {fellows[fellow]['project']}")
+        print(f"Fetching data for: {fellows[fellow]['github_username']} | {fellows[fellow]['project']}")
 
         if fellows[fellow]['project'] not in projects:
-            print(f"No Project Match for {fellow}. Skipping")
+            print(f"No Project Match for {fellows[fellow]['github_username']}. Skipping")
             continue
         fellow_projects = projects[fellows[fellow]['project']]
 

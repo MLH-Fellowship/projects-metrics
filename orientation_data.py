@@ -42,7 +42,7 @@ def get_orientation_projects(term):
 
 def collect_orientation_data(fellows, projects):
     for fellow in fellows:
-        print(f"Fetching data for: {fellow}")  
+        print(f"Fetching data for: {fellows[fellow]['github_username']}")
         for project in projects:
         
             # PRs
