@@ -63,26 +63,27 @@ def get_projects(term):
 def add_to_db(email, github_id, github_username, project, id, 
               url, activity_type, message, number, created_at, closed_at="Null", 
               merged_at="Null", additions="Null", deletions="Null", files_changed="Null"):
-    activities_data_sh = sheet.worksheet("activities_data")
     if check_no_duplicates(url, id, closed_at, merged_at):
         print(f"Url to add: {url}")
-        activities_data_sh.append_row([email,
-                                       github_id,
-                                       github_username,
-                                       project,
-                                       id,
-                                       url,
-                                       activity_type,
-                                       message,
-                                       number,
-                                       standardize_datetime(created_at, activity_type),
-                                       standardize_datetime(closed_at, activity_type),
-                                       standardize_datetime(merged_at, activity_type),
-                                       additions,
-                                       deletions,
-                                       files_changed])
+        row = [email,
+               github_id,
+               github_username,
+               project,
+               id,
+               url,
+               activity_type,
+               message,
+               number,
+               standardize_datetime(created_at, activity_type),
+               standardize_datetime(closed_at, activity_type),
+               standardize_datetime(merged_at, activity_type),
+               additions,
+               deletions,
+               files_changed]
+        return row
     else:
         print(f"Duplicate, skipping - {url}")
+        return []
 
 
 def check_no_duplicates(url, id, closed_date="Null", merged_date="Null"):
@@ -97,21 +98,17 @@ def check_no_duplicates(url, id, closed_date="Null", merged_date="Null"):
             if merged_date != "Null" and merged_date != None:
                 date = standardize_datetime(merged_date, "Pull Request")
                 activities_data_sh.update_acell(f"L{row + 2}", date)
-                get_pr_changed_lines(url, row)
+                if "https://github" in url:
+                    org = url.split('/')[3]
+                    repo_name = url.split('/')[4]
+                    pull_id = int(url.split('/')[6])
+                    pull_response = requests.get(f"https://api.github.com/repos/{org}/{repo_name}/pulls/{pull_id}", auth=(os.getenv("GH_USERNAME"), os.getenv("GH_ACCESS_TOKEN"))).json()
+                    if pull_response:
+                        activities_data_sh.update_acell(f"M{row + 2}", pull_response['additions'])
+                        activities_data_sh.update_acell(f"N{row + 2}", pull_response['deletions'])
+                        activities_data_sh.update_acell(f"O{row + 2}", pull_response['changed_files'])
             return False
     return True
-
-def get_pr_changed_lines(url, row):
-    activities_data_sh = sheet.worksheet("activities_data")
-    if "https://github" in url:
-        org = url.split('/')[3]
-        repo_name = url.split('/')[4]
-        pull_id = int(url.split('/')[6])
-        pull_response = requests.get(f"https://api.github.com/repos/{org}/{repo_name}/pulls/{pull_id}", auth=(os.getenv("GH_USERNAME"), os.getenv("GH_ACCESS_TOKEN"))).json()
-        if pull_response:
-            activities_data_sh.update_acell(f"M{row + 2}", pull_response['additions'])
-            activities_data_sh.update_acell(f"N{row + 2}", pull_response['deletions'])
-            activities_data_sh.update_acell(f"O{row + 2}", pull_response['changed_files'])
 
 def standardize_datetime(raw_datetime, actitivty_type):
     pr_format = "%Y-%m-%dT%H:%M:%S%z"

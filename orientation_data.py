@@ -143,17 +143,14 @@ def check_no_duplicates(url, id, closed_date="Null", merged_date="Null"):
             if merged_date != "Null" and merged_date != None:
                 date = helpers.standardize_datetime(merged_date, "Pull Request")
                 orientation_data.update_acell(f"L{row + 2}", date)
-                get_pr_changed_lines(url, row)
+                if "https://github" in url:
+                    org = url.split('/')[3]
+                    repo_name = url.split('/')[4]
+                    pull_id = int(url.split('/')[6])
+                    pull_response = requests.get(f"{git_metrics.BASE_URL}/repos/{org}/{repo_name}/pulls/{pull_id}", auth=(os.getenv("GH_USERNAME"), os.getenv("GH_ACCESS_TOKEN"))).json()
+                    if pull_response:
+                        orientation_data.update_acell(f"M{row + 2}", pull_response['additions'])
+                        orientation_data.update_acell(f"N{row + 2}", pull_response['deletions'])
+                        orientation_data.update_acell(f"O{row + 2}", pull_response['changed_files'])
             return False
     return True
-
-def get_pr_changed_lines(url, row):
-    if "https://github" in url:
-        org = url.split('/')[3]
-        repo_name = url.split('/')[4]
-        pull_id = int(url.split('/')[6])
-        pull_response = requests.get(f"{git_metrics.BASE_URL}/repos/{org}/{repo_name}/pulls/{pull_id}", auth=(os.getenv("GH_USERNAME"), os.getenv("GH_ACCESS_TOKEN"))).json()
-        if pull_response:
-            orientation_data.update_acell(f"M{row + 2}", pull_response['additions'])
-            orientation_data.update_acell(f"N{row + 2}", pull_response['deletions'])
-            orientation_data.update_acell(f"O{row + 2}", pull_response['changed_files'])
