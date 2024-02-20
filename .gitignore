@@ -9,3 +9,7 @@ gs_credentials.json
 __pycache__
 
 repos/
+
+.coverage
+.pytest_cache/
+junit/

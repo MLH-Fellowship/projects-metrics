@@ -3,3 +3,5 @@ requests
 pytz
 gspread
 oauth2client
+pytest
+pytest-cov

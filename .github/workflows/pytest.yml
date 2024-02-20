@@ -1,0 +1,29 @@
+on:
+  pull_request:
+    types: [opened, reopened]
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout repo content
+        uses: actions/checkout@v4
+      
+      - name: Create gs_credentials.json
+        run: echo -n ${{ secrets.GC_SA }} | base64 -d > gs_credentials.json
+      
+      - name: Create virual environment
+        run: python3 -m venv .venv && source .venv/bin/activate
+
+      - name: Install requirements
+        run: pip install -r requirements.txt
+
+      - name: Test with pytest
+        run: pytest --import-mode=append tests/
+        env:
+          GH_ACCESS_TOKEN: ${{ secrets.GH_ACCESS_TOKEN }}
+          GH_USERNAME: ${{ secrets.GH_USERNAME }}
+          GL_ACCESS_TOKEN: ${{ secrets.GL_ACCESS_TOKEN }}
+          PYTHONUNBUFFERED: "1"
