@@ -97,7 +97,6 @@ def collect_data():
         issues_response = make_gh_request(ISSUES_URL, fellows[fellow]['github_username'])
         if issues_response != None and "items" in issues_response:
             find_issues_prs(issues_response, fellow_projects['urls'], fellow)
-        time.sleep(5)
 
         print("Getting commits")
         for url in fellow_projects['urls']:
@@ -116,7 +115,6 @@ def collect_data():
                 repo_name = url.split('/')[4]
                 gh_issue_response = make_gh_request(ISSUE_URL, fellows[fellow]['github_username'], org=org, project=repo_name)
                 find_assigned_issues(gh_issue_response, fellow)
-                time.sleep(5)
 
         if len(fellow_projects['gitlab_ids']) > 0:
             for gitlab_id in fellow_projects['gitlab_ids']:
@@ -126,9 +124,6 @@ def collect_data():
                 issue_response = make_gl_request("issue", fellows[fellow]['gitlab_username'], gitlab_id)
                 if issue_response:
                     find_gl_issues(issue_response, fellow)
-
-        time.sleep(10) # Limited to 30 requests a minute / 1 request every 2 seconds.
-
 
 def make_gh_request(request_type, user, org=None, project=None):
     r = None
@@ -261,7 +256,6 @@ if __name__ == "__main__":
             projects = helpers.get_projects(term)
             collect_data()
             print(f"{term} Completed")
-            time.sleep(50)
             now = datetime.datetime.now()
 
             if now < now + datetime.timedelta(days=21):

@@ -81,7 +81,6 @@ def collect_orientation_data(fellows, projects):
                                                         helpers.standardize_datetime(item['created_at'], "Issue"),
                                                         helpers.standardize_datetime(item['closed_at'], "Issue"),
                                                         "Null"])
-                time.sleep(10)
             else:
                 print("No PRs/Issues fetched")
                 
@@ -106,7 +105,6 @@ def collect_orientation_data(fellows, projects):
                                                         "Null"])
                     else:
                         print(f"Duplicate, skipping - {url}/commit/{commit['sha']}")
-                time.sleep(5)
 
             # Issues
             print("Collecting issues....")
@@ -133,8 +131,7 @@ def collect_orientation_data(fellows, projects):
                                                             "Null"])
                         else:
                             print(f"Duplicate, skipping - {issue['html_url']}")
-                    time.sleep(5)
-            
+
 def check_no_duplicates(url, id, closed_date="Null", merged_date="Null"):
     values = orientation_data.get("E2:E")
     time.sleep(5)
