@@ -3,20 +3,24 @@ import subprocess
 
 def collect_commits(url, fellow):
     commits = []
-    try:
-        os.makedirs("repos")
-    except Exception as e:
-        pass
-    
-    os.chdir("repos")
+    working_dir = os.getcwd()
+
     if url == "":
         print("Repo URL is blank")
         return commits
+    try:
+        os.makedirs("repos")
+    except Exception as e:
+        os.chdir(working_dir)
+    
+
+    os.chdir("repos")
     os.system(f"git clone {url} repo >/dev/null 2>&1")
     try:
         os.chdir("repo")
     except:
         print("Repo invalid")
+        os.chdir(working_dir)
         return commits
 
     raw_output = subprocess.check_output("git log --author=" + fellow + " --all --stat | awk '{print}'", shell=True).rstrip()

@@ -14,7 +14,7 @@ Python scripts to automatically pull Git data from GitHub and GitLab about Fello
 ### `git_metrics.py`
 Collects everything for fellows and projects during a specific fellowship batch and also starts the Orientation Data process. 
 
-### `orientation_data.py`
+### `orientation_metrics.py`
 Collects everything for fellows on their Orientation Project in Week 1 and 2 during a specific fellowship batch
 
 ### `cli.py`
