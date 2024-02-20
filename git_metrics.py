@@ -6,27 +6,24 @@ import datetime
 import pytz
 import os
 import helpers
-import orientation_data
+import orientation_metrics
 import gspread
 import cli
 from oauth2client.service_account import ServiceAccountCredentials
 
 load_dotenv()
 
-
-
-BASE_URL = "https://api.github.com"
-
-COMMITS_URL = "commits?q=author:"
-ISSUES_URL = "issues?q=author:"
-ISSUE_URL = "issues?assignee"
-
-GITHUB_DATE_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
-GITHUB_COMMIT_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f%z"
-CLI_COMMIT_DATE_FORMAT = "%a %b %d %H:%M:%S %Y %z"
-GITLAB_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
-
 class GitMetrics:
+    BASE_URL = "https://api.github.com"
+
+    COMMITS_URL = "commits?q=author:"
+    ISSUES_URL = "issues?q=author:"
+    ISSUE_URL = "issues?assignee"
+
+    GITHUB_DATE_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
+    GITHUB_COMMIT_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%f%z"
+    CLI_COMMIT_DATE_FORMAT = "%a %b %d %H:%M:%S %Y %z"
+    GITLAB_DATE_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
 
     def __init__(self, term):
         self.term = term
@@ -34,8 +31,7 @@ class GitMetrics:
         self.projects = helpers.get_projects(term)
         self.project_data = []
 
-        self.scope = ['https://www.googleapis.com/auth/spreadsheets', "https://www.googleapis.com/auth/drive"]
-
+        self.scope = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
         self.credentials = ServiceAccountCredentials.from_json_keyfile_name("gs_credentials.json", self.scope)
         self.client = gspread.authorize(self.credentials)
 
@@ -76,7 +72,7 @@ class GitMetrics:
 
             
             print("Getting PRs/Issues")
-            issues_response = self.make_gh_request(ISSUES_URL, self.fellows[fellow]['github_username'])
+            issues_response = self.make_gh_request(self.ISSUES_URL, self.fellows[fellow]['github_username'])
             if issues_response != None and "items" in issues_response:
                 self.find_issues_prs(issues_response, fellow_projects['urls'], fellow)
 
@@ -84,7 +80,7 @@ class GitMetrics:
             for url in fellow_projects['urls']:
                 commits = cli.collect_commits(url, fellow)
                 for commit in commits:
-                    local_date = datetime.datetime.strptime(commit['date'], CLI_COMMIT_DATE_FORMAT).replace(tzinfo=self.utc)
+                    local_date = datetime.datetime.strptime(commit['date'], self.CLI_COMMIT_DATE_FORMAT).replace(tzinfo=self.utc)
                     if local_date > self.batch_start.replace(tzinfo=self.utc) and local_date < self.batch_end.replace(tzinfo=self.utc):
                         print(f"Adding {commit['sha']} to db")
                         row = helpers.add_to_db(email=fellow, github_id=self.fellows[fellow]['github_userid'], github_username=self.fellows[fellow]['github_username'], 
@@ -98,7 +94,7 @@ class GitMetrics:
                 if "https://github" in url:
                     org = url.split('/')[3]
                     repo_name = url.split('/')[4]
-                    gh_issue_response = self.make_gh_request(ISSUE_URL, self.fellows[fellow]['github_username'], org=org, project=repo_name)
+                    gh_issue_response = self.make_gh_request(self.ISSUE_URL, self.fellows[fellow]['github_username'], org=org, project=repo_name)
                     self.find_assigned_issues(gh_issue_response, fellow)
 
             print("Getting GitLab Merge Requests")
@@ -118,14 +114,14 @@ class GitMetrics:
     def make_gh_request(self, request_type, user, org=None, project=None):
         r = None
         try:
-            if request_type == ISSUES_URL:
-                r = requests.get(f"{BASE_URL}/search/{request_type}{user} created:{self.program_date_start_year}-{'{:0>{}}'.format(self.program_date_start_month, 2)}-{'{:0>{}}'.format(self.program_date_start_day, 2)}..{self.program_date_end_year}-{'{:0>{}}'.format(self.program_date_end_month, 2)}-{'{:0>{}}'.format(self.program_date_end_day, 2)}&per_page=100&&sort=created",
+            if request_type == self.ISSUES_URL:
+                r = requests.get(f"{self.BASE_URL}/search/{request_type}{user} created:{self.program_date_start_year}-{'{:0>{}}'.format(self.program_date_start_month, 2)}-{'{:0>{}}'.format(self.program_date_start_day, 2)}..{self.program_date_end_year}-{'{:0>{}}'.format(self.program_date_end_month, 2)}-{'{:0>{}}'.format(self.program_date_end_day, 2)}&per_page=100&&sort=created",
                                 auth=(os.getenv("GH_USERNAME"), os.getenv("GH_ACCESS_TOKEN")))
-            elif request_type == COMMITS_URL:
-                r = requests.get(f"{BASE_URL}/search/{request_type}{user} created:{self.program_date_start_year}-{'{:0>{}}'.format(self.program_date_start_month, 2)}-{'{:0>{}}'.format(self.program_date_start_day, 2)}..{self.program_date_end_year}-{'{:0>{}}'.format(self.program_date_end_month, 2)}-{'{:0>{}}'.format(self.program_date_end_day, 2)}&per_page=100&&sort=author-date",
+            elif request_type == self.COMMITS_URL:
+                r = requests.get(f"{self.BASE_URL}/search/{request_type}{user} created:{self.program_date_start_year}-{'{:0>{}}'.format(self.program_date_start_month, 2)}-{'{:0>{}}'.format(self.program_date_start_day, 2)}..{self.program_date_end_year}-{'{:0>{}}'.format(self.program_date_end_month, 2)}-{'{:0>{}}'.format(self.program_date_end_day, 2)}&per_page=100&&sort=author-date",
                                 auth=(os.getenv("GH_USERNAME"), os.getenv("GH_ACCESS_TOKEN")))
-            elif request_type == ISSUE_URL:
-                r = requests.get(f"{BASE_URL}/repos/{org}/{project}/{ISSUE_URL}={user}", auth=(os.getenv("GH_USERNAME"), os.getenv("GH_ACCESS_TOKEN")))
+            elif request_type == self.ISSUE_URL:
+                r = requests.get(f"{self.BASE_URL}/repos/{org}/{project}/{self.ISSUE_URL}={user}", auth=(os.getenv("GH_USERNAME"), os.getenv("GH_ACCESS_TOKEN")))
             return r.json()  
         except:
             pprint(r.json())
@@ -145,7 +141,6 @@ class GitMetrics:
             pprint(r.json())
             return None
 
-
     def find_issues_prs(self, response, projects, fellow):
         if "items" in response:
             print(f"Total PRs/Issues: {len(response['items'])}")
@@ -154,7 +149,7 @@ class GitMetrics:
                 
                 # Check dates are within Batch Dates
                 if url in projects:
-                    local_date = datetime.datetime.strptime(item['created_at'], GITHUB_DATE_FORMAT)
+                    local_date = datetime.datetime.strptime(item['created_at'], self.GITHUB_DATE_FORMAT)
 
                     if local_date >= self.batch_start and local_date <= self.batch_end:
                         print(f"Date within range - proceeding with {url}")
@@ -186,7 +181,7 @@ class GitMetrics:
             for item in response['items']:
                 url = item['repository']['html_url']
                 
-                local_date = (datetime.datetime.strptime(item['commit']['author']['date'], GITHUB_COMMIT_DATE_FORMAT)).replace(tzinfo=self.utc)
+                local_date = (datetime.datetime.strptime(item['commit']['author']['date'], self.GITHUB_COMMIT_DATE_FORMAT)).replace(tzinfo=self.utc)
                 if local_date >= self.batch_start.replace(tzinfo=self.utc) and local_date <= self.batch_end.replace(tzinfo=self.utc):
                     if url in projects:
                         row = helpers.add_to_db(email=fellow, github_id=self.fellows[fellow]['github_userid'], github_username=self.fellows[fellow]['github_username'], 
@@ -201,7 +196,7 @@ class GitMetrics:
         if "errors" in response:
             return
         for issue in response:
-            local_date = datetime.datetime.strptime(issue['created_at'], GITHUB_DATE_FORMAT)
+            local_date = datetime.datetime.strptime(issue['created_at'], self.GITHUB_DATE_FORMAT)
             if local_date >= self.batch_start and local_date <= self.batch_end:
                 row = helpers.add_to_db(email=fellow, github_id=self.fellows[fellow]['github_userid'], github_username=self.fellows[fellow]['github_username'], 
                                 project=self.fellows[fellow]['project'], id=issue['id'], url=issue['html_url'], activity_type="Issue", message=issue['title'], 
@@ -211,7 +206,7 @@ class GitMetrics:
 
     def find_merge_requests(self, response, fellow):
         for mr in response:
-            local_date = datetime.datetime.strptime(mr['created_at'], GITLAB_DATE_FORMAT)
+            local_date = datetime.datetime.strptime(mr['created_at'], self.GITLAB_DATE_FORMAT)
             if local_date >= self.batch_start and local_date <= self.batch_end:
                 row = helpers.add_to_db(email=fellow, github_id=self.fellows[fellow]['github_userid'], github_username=self.fellows[fellow]['gitlab_username'], 
                                 project=self.fellows[fellow]['project'], id=mr['iid'], url=mr['web_url'], activity_type="Pull Request", message=mr['title'], 
@@ -221,7 +216,7 @@ class GitMetrics:
 
     def find_gl_issues(self, response, fellow):
         for issue in response:
-            local_date = datetime.datetime.strptime(issue['created_at'], GITLAB_DATE_FORMAT)
+            local_date = datetime.datetime.strptime(issue['created_at'], self.GITLAB_DATE_FORMAT)
             if local_date >= self.batch_start and local_date <= self.batch_end:
                 row = helpers.add_to_db(email=fellow, github_id=self.fellows[fellow]['github_userid'], 
                                 github_username=self.fellows[fellow]['gitlab_username'], project=self.fellows[fellow]['project'], 
@@ -235,13 +230,12 @@ if __name__ == "__main__":
     terms = helpers.get_terms()
     print(f"Collecting data for {str(terms)}")
     for term in terms:
-        program = GitMetrics(term)
-        program.collect_data()
+        program_metrics = GitMetrics(term)
+        program_metrics.collect_data()
            
         now = datetime.datetime.now()
         if now < now + datetime.timedelta(days=21):
-            print(f"Collecting Orientation Data for {term}")
-            program.projects.clear()
-            program.projects = orientation_data.get_orientation_projects(term)
-            orientation_data.collect_orientation_data(program.fellows, program.projects)
+            print(f"Collecting Orientation Metrics for {term}")
+            program_orientation_metrics = orientation_metrics.OrientationMetrics(term)
+            program_orientation_metrics.collect_data()
             print(f"Orientation Data completed for {term}")
