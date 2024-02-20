@@ -106,8 +106,7 @@ class GitMetrics:
                     issue_response = self.make_gl_request("issue", self.fellows[fellow]['gitlab_username'], gitlab_id)
                     if issue_response:
                         self.find_gl_issues(issue_response, fellow)
-            
-        print(f"Add data to sheet - {self.project_data}")
+                        
         self.activities_data_sh.append_rows(self.project_data)
         self.project_data.clear()
 
