@@ -73,12 +73,14 @@ class GitMetrics:
                 self.find_issues_prs(issues_response, fellow_projects['urls'], fellow)
 
             # Getting commits
+            cli_urls = []
             for url in fellow_projects['urls']:
                 commits = cli.collect_commits(url, fellow)
                 for commit in commits:
                     local_date = datetime.datetime.strptime(commit['date'], self.CLI_COMMIT_DATE_FORMAT).replace(tzinfo=self.utc)
                     if local_date > self.batch_start.replace(tzinfo=self.utc) and local_date < self.batch_end.replace(tzinfo=self.utc):
                         print(f"Adding {commit['sha']} to db")
+                        cli_urls.append(f"{url}/commit/{commit['sha']}")
                         row = helpers.add_to_db(email=fellow, github_id=self.fellows[fellow]['github_userid'], github_username=self.fellows[fellow]['github_username'], 
                                         project=self.fellows[fellow]['project'], id=commit['sha'], url=f"{url}/commit/{commit['sha']}", activity_type="Commit", message=commit['message'], number="Null", 
                                         created_at=commit['date'], additions=commit['additions'], deletions=commit['deletions'], files_changed=commit['files_changed'])
@@ -88,7 +90,8 @@ class GitMetrics:
             # Run commit check again using API for commits not collected using email. Using GitHub username to collect onwards
             commits_response = self.make_gh_request(self.COMMITS_URL, self.fellows[fellow]['github_username'])
             if commits_response != None and "items" in commits_response:
-                self.find_commits(commits_response, fellow_projects['urls'], fellow)
+                self.find_commits(commits_response, fellow_projects['urls'], fellow, cli_urls)
+            cli_urls.clear()
 
             # Getting Issues
             for url in fellow_projects['urls']:
@@ -170,14 +173,15 @@ class GitMetrics:
         else:
             print(response)
 
-    def find_commits(self, response, projects, fellow):
+    def find_commits(self, response, projects, fellow, cli_urls):
         if "items" in response:
+            print(f"Total Commits fetched via API: {len(response['items'])}")
             for item in response['items']:
                 url = item['repository']['html_url']
                 
                 local_date = (datetime.datetime.strptime(item['commit']['author']['date'], self.GITHUB_COMMIT_DATE_FORMAT)).replace(tzinfo=self.utc)
                 if local_date >= self.batch_start.replace(tzinfo=self.utc) and local_date <= self.batch_end.replace(tzinfo=self.utc):
-                    if url in projects:
+                    if url in projects and url not in cli_urls:
                         row = helpers.add_to_db(email=fellow, github_id=self.fellows[fellow]['github_userid'], github_username=self.fellows[fellow]['github_username'], 
                                         project=self.fellows[fellow]['project'], id=item['sha'], url=item['html_url'], activity_type="Commit", message=item['commit']['message'], 
                                         number="Null", created_at=item['commit']['author']['date'])

@@ -75,11 +75,13 @@ class OrientationMetrics(git_metrics.GitMetrics):
                     print("No PRs/Issues fetched")
                     
                 # Commits
+                cli_urls = []
                 for url in self.projects[project]['urls']:
                     commits = cli.collect_commits(url, fellow)
                     for commit in commits:
                         if self.check_no_duplicates(f"{url}/commit/{commit['sha']}", commit['sha']):
                             print(f"Adding to db - {url}/commit/{commit['sha']}")
+                            cli_urls.append(f"{url}/commit/{commit['sha']}")
                             self.project_data.append([fellow,
                                                       self.fellows[fellow]['term'],
                                                       self.fellows[fellow]['pod'],
@@ -99,7 +101,7 @@ class OrientationMetrics(git_metrics.GitMetrics):
                     for item in commits_response['items']:
                         url = item['repository']['html_url']
                         if url in self.projects:
-                            if self.check_no_duplicates(url, item['sha']):
+                            if self.check_no_duplicates(url, item['sha']) and url not in cli_urls:
                                 print(f"Adding to db - {url}")
                                 self.project_data.append([fellow,
                                                           self.fellows[fellow]['term'],
@@ -113,6 +115,7 @@ class OrientationMetrics(git_metrics.GitMetrics):
                                                           helpers.standardize_datetime(issue['created_at'], "Commit"),
                                                           "Null",
                                                           "Null"])
+                cli_urls.clear()
 
                 # Issues
                 for url in self.projects[project]['urls']:
