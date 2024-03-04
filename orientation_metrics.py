@@ -32,111 +32,114 @@ class OrientationMetrics(git_metrics.GitMetrics):
         return projects
 
     def collect_data(self):
-        for fellow in self.fellows:
-            print(f"Fetching data for: {self.fellows[fellow]['github_username']}")
-            for project in self.projects:
-            
-                # PRs
-                issues_response = self.make_gh_request(self.ISSUES_URL, self.fellows[fellow]['github_username'])
-                if issues_response != None and "items" in issues_response:
-                    for item in issues_response["items"]:
-                        url = '/'.join(item['html_url'].split('/')[:5])
-                        # Check PR is in the project
-                        if url in self.projects[project]['urls'] and "pull_request" in item and self.check_no_duplicates(item['html_url'], item['id'], item['closed_at'], item['pull_request']['merged_at']): # if it's a PR
-                            self.project_data.append([fellow,
-                                                          self.fellows[fellow]['term'],
-                                                          self.fellows[fellow]['pod'],
-                                                          self.fellows[fellow]['github_username'],
-                                                          item['id'],
-                                                          item['html_url'],
-                                                          "Pull Request", 
-                                                          item['title'],
-                                                          item['number'],
-                                                          helpers.standardize_datetime(item['created_at'], "Pull Request"),
-                                                          helpers.standardize_datetime(item['closed_at'], "Pull Request"),
-                                                          helpers.standardize_datetime(item['pull_request']['merged_at'], "Pull Request")])
-                        # Check Issue is in the project
-                        elif url in self.projects[project]['urls'] and "pull_request" not in item and self.check_no_duplicates(item['html_url'], item['id'], item['closed_at']): #if it's an Issue
-                            self.project_data.append([fellow,
-                                                      self.fellows[fellow]['term'],
-                                                      self.fellows[fellow]['pod'],
-                                                      self.fellows[fellow]['github_username'],
-                                                      item['id'],
-                                                      item['html_url'],
-                                                      "Issue", 
-                                                      item['title'],
-                                                      item['number'],
-                                                      helpers.standardize_datetime(item['created_at'], "Issue"),
-                                                      helpers.standardize_datetime(item['closed_at'], "Issue"),
-                                                      "Null"])
-                else:
-                    print("No PRs/Issues fetched")
-                    
-                # Commits
-                cli_urls = []
-                for url in self.projects[project]['urls']:
-                    commits = cli.collect_commits(url, fellow)
-                    for commit in commits:
-                        if self.check_no_duplicates(f"{url}/commit/{commit['sha']}", commit['sha']):
-                            cli_urls.append(f"{url}/commit/{commit['sha']}")
-                            self.project_data.append([fellow,
-                                                      self.fellows[fellow]['term'],
-                                                      self.fellows[fellow]['pod'],
-                                                      self.fellows[fellow]['github_username'],
-                                                      commit['sha'],
-                                                      f"{url}/commit/{commit['sha']}",
-                                                      "Commit",
-                                                      commit['message'],
-                                                      "Null",
-                                                      helpers.standardize_datetime(commit['date'], "Commit"),
-                                                      "Null",
-                                                      "Null"])
+        try:
 
-                # Get commits via API to fill in any blanks
-                commits_response = self.make_gh_request(self.COMMITS_URL, self.fellows[fellow]['github_username'])
-                if commits_response != None and "items" in commits_response:
-                    for item in commits_response['items']:
-                        url = item['repository']['html_url']
-                        if url in self.projects:
-                            if self.check_no_duplicates(url, item['sha']) and url not in cli_urls:
+            for fellow in self.fellows:
+                print(f"Fetching data for: {self.fellows[fellow]['github_username']}")
+                for project in self.projects:
+                
+                    # PRs
+                    issues_response = self.make_gh_request(self.ISSUES_URL, self.fellows[fellow]['github_username'])
+                    if issues_response != None and "items" in issues_response:
+                        for item in issues_response["items"]:
+                            url = '/'.join(item['html_url'].split('/')[:5])
+                            # Check PR is in the project
+                            if url in self.projects[project]['urls'] and "pull_request" in item and self.check_no_duplicates(item['html_url'], item['id'], item['closed_at'], item['pull_request']['merged_at']): # if it's a PR
                                 self.project_data.append([fellow,
-                                                          self.fellows[fellow]['term'],
-                                                          self.fellows[fellow]['pod'],
-                                                          self.fellows[fellow]['github_username'],
-                                                          item['sha'],
-                                                          url,
-                                                          "Commit",
-                                                          item['commit']['message'],
-                                                          "Null",
-                                                          helpers.standardize_datetime(issue['created_at'], "Commit"),
-                                                          "Null",
-                                                          "Null"])
-                cli_urls.clear()
-
-                # Issues
-                for url in self.projects[project]['urls']:
-                    if "https://github" in url:
-                        org = url.split('/')[3]
-                        repo_name = url.split('/')[4]
-                        gh_issue_response = self.make_gh_request(self.ISSUE_URL, self.fellows[fellow]['github_username'], org=org, project=repo_name)
+                                                            self.fellows[fellow]['term'],
+                                                            self.fellows[fellow]['pod'],
+                                                            self.fellows[fellow]['github_username'],
+                                                            item['id'],
+                                                            item['html_url'],
+                                                            "Pull Request", 
+                                                            item['title'],
+                                                            item['number'],
+                                                            helpers.standardize_datetime(item['created_at'], "Pull Request"),
+                                                            helpers.standardize_datetime(item['closed_at'], "Pull Request"),
+                                                            helpers.standardize_datetime(item['pull_request']['merged_at'], "Pull Request")])
+                            # Check Issue is in the project
+                            elif url in self.projects[project]['urls'] and "pull_request" not in item and self.check_no_duplicates(item['html_url'], item['id'], item['closed_at']): #if it's an Issue
+                                self.project_data.append([fellow,
+                                                        self.fellows[fellow]['term'],
+                                                        self.fellows[fellow]['pod'],
+                                                        self.fellows[fellow]['github_username'],
+                                                        item['id'],
+                                                        item['html_url'],
+                                                        "Issue", 
+                                                        item['title'],
+                                                        item['number'],
+                                                        helpers.standardize_datetime(item['created_at'], "Issue"),
+                                                        helpers.standardize_datetime(item['closed_at'], "Issue"),
+                                                        "Null"])
+                    else:
+                        print("No PRs/Issues fetched")
                         
-                        for issue in gh_issue_response:
-                            if self.check_no_duplicates(issue['html_url'], issue['id'], issue['closed_at']):
-                                row = [fellow,
-                                       self.fellows[fellow]['term'],
-                                       self.fellows[fellow]['pod'],
-                                       self.fellows[fellow]['github_username'],
-                                       issue['id'],
-                                       issue['html_url'],
-                                       "Issue", 
-                                       issue['title'],
-                                       issue['number'],
-                                       helpers.standardize_datetime(issue['created_at'], "Issue"),
-                                       issue['closed_at'],
-                                       "Null"]
-                                if len(row) > 0:
-                                    self.project_data.append(row)
+                    # Commits
+                    cli_urls = []
+                    for url in self.projects[project]['urls']:
+                        commits = cli.collect_commits(url, fellow)
+                        for commit in commits:
+                            if self.check_no_duplicates(f"{url}/commit/{commit['sha']}", commit['sha']):
+                                cli_urls.append(f"{url}/commit/{commit['sha']}")
+                                self.project_data.append([fellow,
+                                                        self.fellows[fellow]['term'],
+                                                        self.fellows[fellow]['pod'],
+                                                        self.fellows[fellow]['github_username'],
+                                                        commit['sha'],
+                                                        f"{url}/commit/{commit['sha']}",
+                                                        "Commit",
+                                                        commit['message'],
+                                                        "Null",
+                                                        helpers.standardize_datetime(commit['date'], "Commit"),
+                                                        "Null",
+                                                        "Null"])
 
+                    # Get commits via API to fill in any blanks
+                    commits_response = self.make_gh_request(self.COMMITS_URL, self.fellows[fellow]['github_username'])
+                    if commits_response != None and "items" in commits_response:
+                        for item in commits_response['items']:
+                            url = item['repository']['html_url']
+                            if url in self.projects:
+                                if self.check_no_duplicates(url, item['sha']) and url not in cli_urls:
+                                    self.project_data.append([fellow,
+                                                            self.fellows[fellow]['term'],
+                                                            self.fellows[fellow]['pod'],
+                                                            self.fellows[fellow]['github_username'],
+                                                            item['sha'],
+                                                            url,
+                                                            "Commit",
+                                                            item['commit']['message'],
+                                                            "Null",
+                                                            helpers.standardize_datetime(issue['created_at'], "Commit"),
+                                                            "Null",
+                                                            "Null"])
+                    cli_urls.clear()
+
+                    # Issues
+                    for url in self.projects[project]['urls']:
+                        if "https://github" in url:
+                            org = url.split('/')[3]
+                            repo_name = url.split('/')[4]
+                            gh_issue_response = self.make_gh_request(self.ISSUE_URL, self.fellows[fellow]['github_username'], org=org, project=repo_name)
+                            
+                            for issue in gh_issue_response:
+                                if self.check_no_duplicates(issue['html_url'], issue['id'], issue['closed_at']):
+                                    row = [fellow,
+                                        self.fellows[fellow]['term'],
+                                        self.fellows[fellow]['pod'],
+                                        self.fellows[fellow]['github_username'],
+                                        issue['id'],
+                                        issue['html_url'],
+                                        "Issue", 
+                                        issue['title'],
+                                        issue['number'],
+                                        helpers.standardize_datetime(issue['created_at'], "Issue"),
+                                        issue['closed_at'],
+                                        "Null"]
+                                    if len(row) > 0:
+                                        self.project_data.append(row)
+        except Exception as e:
+            print(e)
         self.orientation_data.append_rows(self.project_data)
         self.project_data.clear()
 

@@ -55,61 +55,63 @@ class GitMetrics:
                 self.batch_end = datetime.datetime(self.program_date_end_year, self.program_date_end_month, self.program_date_end_day)
 
     def collect_data(self):
-        for fellow in self.fellows:
-            print(f"Fetching data for: {self.fellows[fellow]['github_username']} | {self.fellows[fellow]['project']}")
+        try:
+            for fellow in self.fellows:
+                print(f"Fetching data for: {self.fellows[fellow]['github_username']} | {self.fellows[fellow]['project']}")
 
-            if self.fellows[fellow]['project'] not in self.projects:
-                print(f"No Project Match for {self.fellows[fellow]['github_username']}. Skipping")
-                continue
-            fellow_projects = self.projects[self.fellows[fellow]['project']]
+                if self.fellows[fellow]['project'] not in self.projects:
+                    print(f"No Project Match for {self.fellows[fellow]['github_username']}. Skipping")
+                    continue
+                fellow_projects = self.projects[self.fellows[fellow]['project']]
 
-            if len(fellow_projects['urls']) < 1:
-                print(f"No URLs for {self.fellows[fellow]['project']}. Skipping")
-                continue
-            
-            # Getting PRs/Issues
-            issues_response = self.make_gh_request(self.ISSUES_URL, self.fellows[fellow]['github_username'])
-            if issues_response != None and "items" in issues_response:
-                self.find_issues_prs(issues_response, fellow_projects['urls'], fellow)
+                if len(fellow_projects['urls']) < 1:
+                    print(f"No URLs for {self.fellows[fellow]['project']}. Skipping")
+                    continue
+                
+                # Getting PRs/Issues
+                issues_response = self.make_gh_request(self.ISSUES_URL, self.fellows[fellow]['github_username'])
+                if issues_response != None and "items" in issues_response:
+                    self.find_issues_prs(issues_response, fellow_projects['urls'], fellow)
 
-            # Getting commits
-            cli_urls = []
-            for url in fellow_projects['urls']:
-                commits = cli.collect_commits(url, fellow)
-                for commit in commits:
-                    local_date = datetime.datetime.strptime(commit['date'], self.CLI_COMMIT_DATE_FORMAT).replace(tzinfo=self.utc)
-                    if local_date > self.batch_start.replace(tzinfo=self.utc) and local_date < self.batch_end.replace(tzinfo=self.utc):
-                        cli_urls.append(f"{url}/commit/{commit['sha']}")
-                        row = helpers.add_to_db(email=fellow, github_id=self.fellows[fellow]['github_userid'], github_username=self.fellows[fellow]['github_username'], 
-                                        project=self.fellows[fellow]['project'], id=commit['sha'], url=f"{url}/commit/{commit['sha']}", activity_type="Commit", message=commit['message'], number="Null", 
-                                        created_at=commit['date'], additions=commit['additions'], deletions=commit['deletions'], files_changed=commit['files_changed'])
-                        if len(row) > 0:
-                            self.project_data.append(row)
+                # Getting commits
+                cli_urls = []
+                for url in fellow_projects['urls']:
+                    commits = cli.collect_commits(url, fellow)
+                    for commit in commits:
+                        local_date = datetime.datetime.strptime(commit['date'], self.CLI_COMMIT_DATE_FORMAT).replace(tzinfo=self.utc)
+                        if local_date > self.batch_start.replace(tzinfo=self.utc) and local_date < self.batch_end.replace(tzinfo=self.utc):
+                            cli_urls.append(f"{url}/commit/{commit['sha']}")
+                            row = helpers.add_to_db(email=fellow, github_id=self.fellows[fellow]['github_userid'], github_username=self.fellows[fellow]['github_username'], 
+                                            project=self.fellows[fellow]['project'], id=commit['sha'], url=f"{url}/commit/{commit['sha']}", activity_type="Commit", message=commit['message'], number="Null", 
+                                            created_at=commit['date'], additions=commit['additions'], deletions=commit['deletions'], files_changed=commit['files_changed'])
+                            if len(row) > 0:
+                                self.project_data.append(row)
 
-            # Run commit check again using API for commits not collected using email. Using GitHub username to collect onwards
-            commits_response = self.make_gh_request(self.COMMITS_URL, self.fellows[fellow]['github_username'])
-            if commits_response != None and "items" in commits_response:
-                self.find_commits(commits_response, fellow_projects['urls'], fellow, cli_urls)
-            cli_urls.clear()
+                # Run commit check again using API for commits not collected using email. Using GitHub username to collect onwards
+                commits_response = self.make_gh_request(self.COMMITS_URL, self.fellows[fellow]['github_username'])
+                if commits_response != None and "items" in commits_response:
+                    self.find_commits(commits_response, fellow_projects['urls'], fellow, cli_urls)
+                cli_urls.clear()
 
-            # Getting Issues
-            for url in fellow_projects['urls']:
-                if "https://github" in url:
-                    org = url.split('/')[3]
-                    repo_name = url.split('/')[4]
-                    gh_issue_response = self.make_gh_request(self.ISSUE_URL, self.fellows[fellow]['github_username'], org=org, project=repo_name)
-                    self.find_assigned_issues(gh_issue_response, fellow)
+                # Getting Issues
+                for url in fellow_projects['urls']:
+                    if "https://github" in url:
+                        org = url.split('/')[3]
+                        repo_name = url.split('/')[4]
+                        gh_issue_response = self.make_gh_request(self.ISSUE_URL, self.fellows[fellow]['github_username'], org=org, project=repo_name)
+                        self.find_assigned_issues(gh_issue_response, fellow)
 
-            # Getting GitLab Merge Requests
-            if len(fellow_projects['gitlab_ids']) > 0:
-                for gitlab_id in fellow_projects['gitlab_ids']:
-                    mr_response = self.make_gl_request("merge_request", self.fellows[fellow]['gitlab_username'], gitlab_id)
-                    if mr_response:
-                        self.find_merge_requests(mr_response, fellow)
-                    issue_response = self.make_gl_request("issue", self.fellows[fellow]['gitlab_username'], gitlab_id)
-                    if issue_response:
-                        self.find_gl_issues(issue_response, fellow)
-                        
+                # Getting GitLab Merge Requests
+                if len(fellow_projects['gitlab_ids']) > 0:
+                    for gitlab_id in fellow_projects['gitlab_ids']:
+                        mr_response = self.make_gl_request("merge_request", self.fellows[fellow]['gitlab_username'], gitlab_id)
+                        if mr_response:
+                            self.find_merge_requests(mr_response, fellow)
+                        issue_response = self.make_gl_request("issue", self.fellows[fellow]['gitlab_username'], gitlab_id)
+                        if issue_response:
+                            self.find_gl_issues(issue_response, fellow)
+        except Exception as e:
+            print(e)                            
         self.activities_data_sh.append_rows(self.project_data)
         self.project_data.clear()
 
