@@ -43,7 +43,6 @@ class OrientationMetrics(git_metrics.GitMetrics):
                         url = '/'.join(item['html_url'].split('/')[:5])
                         # Check PR is in the project
                         if url in self.projects[project]['urls'] and "pull_request" in item and self.check_no_duplicates(item['html_url'], item['id'], item['closed_at'], item['pull_request']['merged_at']): # if it's a PR
-                            print(f"Adding to db - {item['html_url']}")
                             self.project_data.append([fellow,
                                                           self.fellows[fellow]['term'],
                                                           self.fellows[fellow]['pod'],
@@ -58,7 +57,6 @@ class OrientationMetrics(git_metrics.GitMetrics):
                                                           helpers.standardize_datetime(item['pull_request']['merged_at'], "Pull Request")])
                         # Check Issue is in the project
                         elif url in self.projects[project]['urls'] and "pull_request" not in item and self.check_no_duplicates(item['html_url'], item['id'], item['closed_at']): #if it's an Issue
-                            print(f"Adding to db - {item['html_url']}")
                             self.project_data.append([fellow,
                                                       self.fellows[fellow]['term'],
                                                       self.fellows[fellow]['pod'],
@@ -80,7 +78,6 @@ class OrientationMetrics(git_metrics.GitMetrics):
                     commits = cli.collect_commits(url, fellow)
                     for commit in commits:
                         if self.check_no_duplicates(f"{url}/commit/{commit['sha']}", commit['sha']):
-                            print(f"Adding to db - {url}/commit/{commit['sha']}")
                             cli_urls.append(f"{url}/commit/{commit['sha']}")
                             self.project_data.append([fellow,
                                                       self.fellows[fellow]['term'],
@@ -102,7 +99,6 @@ class OrientationMetrics(git_metrics.GitMetrics):
                         url = item['repository']['html_url']
                         if url in self.projects:
                             if self.check_no_duplicates(url, item['sha']) and url not in cli_urls:
-                                print(f"Adding to db - {url}")
                                 self.project_data.append([fellow,
                                                           self.fellows[fellow]['term'],
                                                           self.fellows[fellow]['pod'],
@@ -126,7 +122,6 @@ class OrientationMetrics(git_metrics.GitMetrics):
                         
                         for issue in gh_issue_response:
                             if self.check_no_duplicates(issue['html_url'], issue['id'], issue['closed_at']):
-                                print(f"Adding to db - {issue['html_url']}")
                                 row = [fellow,
                                        self.fellows[fellow]['term'],
                                        self.fellows[fellow]['pod'],

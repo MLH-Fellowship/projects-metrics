@@ -79,7 +79,6 @@ class GitMetrics:
                 for commit in commits:
                     local_date = datetime.datetime.strptime(commit['date'], self.CLI_COMMIT_DATE_FORMAT).replace(tzinfo=self.utc)
                     if local_date > self.batch_start.replace(tzinfo=self.utc) and local_date < self.batch_end.replace(tzinfo=self.utc):
-                        print(f"Adding {commit['sha']} to db")
                         cli_urls.append(f"{url}/commit/{commit['sha']}")
                         row = helpers.add_to_db(email=fellow, github_id=self.fellows[fellow]['github_userid'], github_username=self.fellows[fellow]['github_username'], 
                                         project=self.fellows[fellow]['project'], id=commit['sha'], url=f"{url}/commit/{commit['sha']}", activity_type="Commit", message=commit['message'], number="Null", 
