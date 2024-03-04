@@ -75,7 +75,7 @@ def collect_commits(url, fellow):
             count = 0
         count += 1
     if len(commits) > 0:
-        print(f"Returning {len(commits)} commits via CLI")
+        print(f"Total Commits fetched via CLI: {len(commits)}")
     os.chdir("../")
     os.system("rm -rf repo")
     os.chdir("../")
