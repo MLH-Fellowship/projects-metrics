@@ -140,6 +140,7 @@ class OrientationMetrics(git_metrics.GitMetrics):
                                         self.project_data.append(row)
         except Exception as e:
             print(e)
+        print(f"Total rows to add: {len(self.project_data)}")
         self.orientation_data.append_rows(self.project_data)
         self.project_data.clear()
 

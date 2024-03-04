@@ -111,7 +111,8 @@ class GitMetrics:
                         if issue_response:
                             self.find_gl_issues(issue_response, fellow)
         except Exception as e:
-            print(e)                            
+            print(e)             
+        print(f"Total rows to add: {len(self.project_data)}")               
         self.activities_data_sh.append_rows(self.project_data)
         self.project_data.clear()
 
