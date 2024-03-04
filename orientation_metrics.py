@@ -93,6 +93,27 @@ class OrientationMetrics(git_metrics.GitMetrics):
                                                       "Null",
                                                       "Null"])
 
+                # Get commits via API to fill in any blanks
+                commits_response = self.make_gh_request(self.COMMITS_URL, self.fellows[fellow]['github_username'])
+                if commits_response != None and "items" in commits_response:
+                    for item in commits_response['items']:
+                        url = item['repository']['html_url']
+                        if url in self.projects:
+                            if self.check_no_duplicates(url, item['sha']):
+                                print(f"Adding to db - {url}")
+                                self.project_data.append([fellow,
+                                                          self.fellows[fellow]['term'],
+                                                          self.fellows[fellow]['pod'],
+                                                          self.fellows[fellow]['github_username'],
+                                                          item['sha'],
+                                                          url,
+                                                          "Commit",
+                                                          item['commit']['message'],
+                                                          "Null",
+                                                          helpers.standardize_datetime(issue['created_at'], "Commit"),
+                                                          "Null",
+                                                          "Null"])
+
                 # Issues
                 for url in self.projects[project]['urls']:
                     if "https://github" in url:

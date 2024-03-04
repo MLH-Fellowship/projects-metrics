@@ -34,11 +34,10 @@ class GitMetrics:
         self.scope = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
         self.credentials = ServiceAccountCredentials.from_json_keyfile_name("gs_credentials.json", self.scope)
         self.client = gspread.authorize(self.credentials)
-
         self.sheet = self.client.open_by_url("https://docs.google.com/spreadsheets/d/12quNi2TYuRK40woals-ABPT5NcsmhBmC_dHNU9rX1Do")
         self.activities_data_sh = self.sheet.worksheet("activities_data")
-        self.utc = pytz.utc
 
+        self.utc = pytz.utc
         dates_sh = self.sheet.worksheet('Fellowship Terms')
         for row in dates_sh.get_all_records():
 
@@ -46,14 +45,12 @@ class GitMetrics:
                 start_date = str(row['Start_Date__c']).split('-')
                 end_date = str(row['End_Date__c']).split('-')
             
-
                 self.program_date_start_year = int(start_date[0])
                 self.program_date_end_year = int(end_date[0])
                 self.program_date_start_month = int(start_date[1])
                 self.program_date_end_month = int(end_date[1])
                 self.program_date_start_day = int(start_date[2])
                 self.program_date_end_day = int(end_date[2])
-
                 self.batch_start = datetime.datetime(self.program_date_start_year, self.program_date_start_month, self.program_date_start_day)
                 self.batch_end = datetime.datetime(self.program_date_end_year, self.program_date_end_month, self.program_date_end_day)
 
@@ -69,7 +66,6 @@ class GitMetrics:
             if len(fellow_projects['urls']) < 1:
                 print(f"No URLs for {self.fellows[fellow]['project']}. Skipping")
                 continue
-
             
             # Getting PRs/Issues
             issues_response = self.make_gh_request(self.ISSUES_URL, self.fellows[fellow]['github_username'])
@@ -88,6 +84,11 @@ class GitMetrics:
                                         created_at=commit['date'], additions=commit['additions'], deletions=commit['deletions'], files_changed=commit['files_changed'])
                         if len(row) > 0:
                             self.project_data.append(row)
+
+            # Run commit check again using API for commits not collected using email. Using GitHub username to collect onwards
+            commits_response = self.make_gh_request(self.COMMITS_URL, self.fellows[fellow]['github_username'])
+            if commits_response != None and "items" in commits_response:
+                self.find_commits(commits_response, fellow_projects['urls'], fellow)
 
             # Getting Issues
             for url in fellow_projects['urls']:
