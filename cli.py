@@ -6,7 +6,7 @@ def collect_commits(url, fellow):
     working_dir = os.getcwd()
 
     if url == "":
-        print("Repo URL is blank")
+        # URL is blank
         return commits
     try:
         os.makedirs("repos")
@@ -19,7 +19,7 @@ def collect_commits(url, fellow):
     try:
         os.chdir("repo")
     except:
-        print("Repo invalid")
+        # Repo invalid
         os.chdir(working_dir)
         return commits
 

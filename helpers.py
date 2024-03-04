@@ -64,7 +64,6 @@ def add_to_db(email, github_id, github_username, project, id,
               url, activity_type, message, number, created_at, closed_at="Null", 
               merged_at="Null", additions="Null", deletions="Null", files_changed="Null"):
     if check_no_duplicates(url, id, closed_at, merged_at):
-        print(f"Url to add: {url}")
         row = [email,
                github_id,
                github_username,
@@ -82,7 +81,6 @@ def add_to_db(email, github_id, github_username, project, id,
                files_changed]
         return row
     else:
-        print(f"Duplicate, skipping - {url}")
         return []
 
 

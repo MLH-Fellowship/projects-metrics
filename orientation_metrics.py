@@ -37,7 +37,6 @@ class OrientationMetrics(git_metrics.GitMetrics):
             for project in self.projects:
             
                 # PRs
-                print("Collecting PRs and Issues....")
                 issues_response = self.make_gh_request(self.ISSUES_URL, self.fellows[fellow]['github_username'])
                 if issues_response != None and "items" in issues_response:
                     for item in issues_response["items"]:
@@ -76,7 +75,6 @@ class OrientationMetrics(git_metrics.GitMetrics):
                     print("No PRs/Issues fetched")
                     
                 # Commits
-                print("Collecting commits....")
                 for url in self.projects[project]['urls']:
                     commits = cli.collect_commits(url, fellow)
                     for commit in commits:
@@ -94,11 +92,8 @@ class OrientationMetrics(git_metrics.GitMetrics):
                                                       helpers.standardize_datetime(commit['date'], "Commit"),
                                                       "Null",
                                                       "Null"])
-                        else:
-                            print(f"Duplicate, skipping - {url}/commit/{commit['sha']}")
 
                 # Issues
-                print("Collecting issues....")
                 for url in self.projects[project]['urls']:
                     if "https://github" in url:
                         org = url.split('/')[3]
@@ -122,8 +117,6 @@ class OrientationMetrics(git_metrics.GitMetrics):
                                        "Null"]
                                 if len(row) > 0:
                                     self.project_data.append(row)
-                            else:
-                                print(f"Duplicate, skipping - {issue['html_url']}")
 
         self.orientation_data.append_rows(self.project_data)
         self.project_data.clear()
