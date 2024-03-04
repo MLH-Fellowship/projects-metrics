@@ -45,7 +45,7 @@ class OrientationMetrics(git_metrics.GitMetrics):
                         # Check PR is in the project
                         if url in self.projects[project]['urls'] and "pull_request" in item and self.check_no_duplicates(item['html_url'], item['id'], item['closed_at'], item['pull_request']['merged_at']): # if it's a PR
                             print(f"Adding to db - {item['html_url']}")
-                            self.project_data.append_row([fellow,
+                            self.project_data.append([fellow,
                                                           self.fellows[fellow]['term'],
                                                           self.fellows[fellow]['pod'],
                                                           self.fellows[fellow]['github_username'],
