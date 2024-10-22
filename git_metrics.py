@@ -10,6 +10,7 @@ import orientation_metrics
 import gspread
 import cli
 from oauth2client.service_account import ServiceAccountCredentials
+import traceback
 
 load_dotenv()
 
@@ -113,6 +114,7 @@ class GitMetrics:
         except Exception as e:
             print(e)             
             pprint(self.fellows)
+            traceback.print_exc()
         print(f"Total rows to add: {len(self.project_data)}")               
         self.activities_data_sh.append_rows(self.project_data)
         self.project_data.clear()
